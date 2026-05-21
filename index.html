@@ -1,0 +1,1767 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arbre Décisionnel Clinique, Goldman × Young × Pubertaire</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+:root {
+  /* Thème clair, parchemin chaud, pour lisibilité sur iPad en consultation */
+  --bg:#f1ebda; --s1:#fbf7ec; --s2:#f5efde; --s3:#ede4cb;
+  --bd:#d6caa8; --bd2:#c4b58c;
+  /* Couleurs d'organisation re,calibrées pour fond clair */
+  --nevr:#2855c4; --depr:#6d28d9; --limit:#b91c5c; --narc:#a67700; --perv:#a92020; --psych:#036672;
+  --text:#23283a; --dim:#6a6f80; --white:#11141d;
+  --green:#1f7a3a; --orange:#a85d1a;
+  /* Ajouts pour nouveaux blocs */
+  --puber:#7b3f00; --school:#1d5b3a; --resist:#5a2d82;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,-apple-system,'Segoe UI','Helvetica Neue',Arial,sans-serif;font-size:16px;line-height:1.6;overflow-x:hidden}
+a{color:var(--nevr);text-decoration:none}
+
+/* HEADER */
+.hdr{background:linear-gradient(135deg,#f7f1de 0%,#ede4cb 100%);border-bottom:1px solid var(--bd);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;gap:12px}
+.hdr-logo{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--nevr);letter-spacing:.15em;text-transform:uppercase;white-space:nowrap}
+.hdr-title{font-size:14px;font-style:italic;color:var(--dim);flex:1;text-align:center}
+.hdr-modes{display:flex;gap:6px;flex-shrink:0}
+.hbtn{background:var(--s2);border:1px solid var(--bd);color:var(--dim);padding:6px 14px;border-radius:4px;cursor:pointer;font-size:12px;font-family:'JetBrains Mono',monospace;transition:all .2s}
+.hbtn.on,.hbtn:hover{background:var(--nevr);color:#fbf7ec;border-color:var(--nevr)}
+
+/* LAYOUT */
+.wrap{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 52px)}
+
+/* SIDEBAR */
+.sb{background:var(--s1);border-right:1px solid var(--bd);padding:16px 0;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto;display:flex;flex-direction:column;gap:0}
+.sb-sect{padding:0 12px;margin-bottom:20px}
+.sb-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.15em;color:var(--dim);margin-bottom:8px;padding-left:2px}
+.sb-btn{display:flex;align-items:center;gap:9px;width:100%;background:transparent;border:1px solid transparent;border-radius:5px;padding:9px 11px;cursor:pointer;text-align:left;margin-bottom:2px;color:var(--text);font-family:'Inter',system-ui,-apple-system,'Segoe UI','Helvetica Neue',Arial,sans-serif;font-size:14px;transition:all .2s;line-height:1.3}
+.sb-btn:hover{background:var(--s2);border-color:var(--bd)}
+.sb-btn.on{background:var(--s2);border-color:var(--bd)}
+.sb-btn.on .sb-name{color:var(--white);font-weight:600}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sb-sub{font-size:11px;color:var(--dim);font-style:italic;margin-top:1px;line-height:1.3}
+.sb-nav-item{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--dim);padding:5px 10px;border-radius:4px;cursor:pointer;transition:all .2s}
+.sb-nav-item:hover{background:var(--s2);color:var(--text)}
+
+/* MAIN */
+.main{padding:26px 28px;max-width:980px}
+
+/* BLOCKS */
+.block{background:var(--s1);border:1px solid var(--bd);border-radius:8px;margin-bottom:18px;overflow:hidden}
+.block-hdr{display:flex;align-items:center;gap:14px;padding:15px 20px;cursor:pointer;user-select:none;transition:background .2s}
+.block-hdr:hover{background:rgba(0,0,0,.03)}
+.bar{width:3px;border-radius:2px;flex-shrink:0;height:36px}
+.bhi{flex:1}
+.bh-name{font-size:17px;font-weight:600;color:var(--white);margin-bottom:2px}
+.bh-q{font-size:13px;color:var(--dim);font-style:italic}
+.badges{display:flex;gap:5px}
+.badge{font-size:9px;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:3px;text-transform:uppercase;letter-spacing:.06em;border:1px solid}
+.chev{color:var(--dim);font-size:14px;transition:transform .3s;flex-shrink:0}
+.block.open .chev{transform:rotate(180deg)}
+.body{display:none;border-top:1px solid var(--bd)}
+.block.open .body{display:block}
+
+/* TABS */
+.tabs{display:flex;background:var(--s2);border-bottom:1px solid var(--bd);overflow-x:auto}
+.tab{padding:9px 16px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap}
+.tab.on{color:var(--white);border-bottom-color:var(--c,var(--nevr))}
+.pane{display:none;padding:20px}
+.pane.on{display:block;animation:fi .2s ease}
+@keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+
+/* CONTENT */
+.slbl{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.13em;color:var(--dim);margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid var(--bd)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.icard{background:var(--s2);border-radius:5px;padding:10px 12px;font-size:13px;display:flex;gap:7px;align-items:flex-start;line-height:1.5;border:1px solid transparent;transition:border-color .2s}
+.icard:hover{border-color:var(--bd2)}
+.ico{font-size:14px;flex-shrink:0;margin-top:1px}
+.mblock{background:var(--s2);border-radius:6px;padding:13px;margin-bottom:11px;border-left:3px solid}
+.mt{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px}
+.ml{list-style:none}
+.ml li{font-size:13px;line-height:1.65;padding:2px 0;border-bottom:1px solid rgba(0,0,0,.05);display:flex;gap:5px}
+.ml li:last-child{border-bottom:none}
+.ml li::before{content:'→';color:var(--dim);flex-shrink:0}
+.gb{background:var(--s2);border-radius:6px;padding:12px;margin-bottom:9px}
+.gh{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.gg{font-size:15px}
+.gtit{font-size:14px;font-weight:600;color:var(--white)}
+.cl{list-style:none}
+.cl li{font-size:13px;padding:3px 0;padding-left:12px;position:relative;line-height:1.6;color:var(--text)}
+.cl li::before{content:'·';position:absolute;left:0;color:var(--orange)}
+.ic{background:rgba(0,0,0,.05);border-radius:4px;padding:7px 11px;font-size:12px;font-style:italic;color:#0a5a6a;display:flex;gap:5px;align-items:flex-start;margin-top:5px;line-height:1.5}
+.cle{background:linear-gradient(135deg,rgba(40,85,196,.10),rgba(3,102,114,.07));border:1px solid rgba(40,85,196,.25);border-radius:5px;padding:10px 14px;margin-top:13px;font-size:13px;font-style:italic;color:var(--nevr);display:flex;align-items:center;gap:7px}
+.hbox{background:rgba(0,0,0,.04);border-radius:5px;padding:11px 13px;margin-top:9px}
+.hbox h4{font-size:10px;color:var(--dim);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.alert{background:rgba(212,84,90,.08);border:1px solid rgba(212,84,90,.2);border-radius:5px;padding:10px 13px;font-size:13px;color:#8a1a20;margin-top:8px;line-height:1.6;color:#8a1a20}
+.corr-row{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--bd);font-size:13px}
+.corr-row:last-child{border-bottom:none}
+.corr-l{color:var(--nevr);font-weight:600;min-width:140px;flex-shrink:0}
+.corr-r{color:var(--text)}
+.etio-item{background:var(--s2);border-radius:5px;padding:11px 13px;margin-bottom:8px;font-size:13px;line-height:1.6;border-left:2px solid var(--narc)}
+.etio-item strong{color:var(--white);display:block;margin-bottom:3px;font-size:11px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.06em}
+.vignette{background:linear-gradient(135deg,rgba(40,85,196,.08),rgba(3,102,114,.05));border:1px solid rgba(40,85,196,.22);border-radius:5px;padding:11px 14px;margin-bottom:8px;font-size:13px;line-height:1.7;font-style:italic;color:#2a3146}
+.vignette strong{color:var(--nevr);font-style:normal;font-size:11px;font-family:'JetBrains Mono',monospace;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-family:'JetBrains Mono',monospace;border:1px solid;margin-right:3px;margin-bottom:3px}
+
+/* TRIAGE */
+.triage{background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:20px;margin-bottom:18px}
+.obs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:14px}
+.chip{background:var(--s2);border:1px solid var(--bd);border-radius:5px;padding:9px 10px;cursor:pointer;transition:all .2s;font-size:12px;text-align:center;position:relative;line-height:1.4}
+.chip:hover{border-color:var(--nevr)}
+.chip.on{background:rgba(107,140,245,.1);border-color:var(--nevr);color:var(--white)}
+.chip.on::after{content:'✓';position:absolute;top:3px;right:5px;font-size:9px;color:var(--nevr)}
+.res-banner{display:none;background:var(--s2);border-radius:5px;padding:12px 15px;border-left:3px solid var(--nevr);margin-top:10px}
+.res-banner.show{display:block;animation:fi .3s ease}
+.res-tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:5px}
+.res-tag{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:600;font-family:'JetBrains Mono',monospace;border:1px solid}
+.go-btn{display:inline-block;margin-top:9px;padding:5px 13px;background:var(--nevr);color:#fbf7ec;border:none;border-radius:4px;cursor:pointer;font-size:10px;font-family:'JetBrains Mono',monospace;transition:all .2s;text-transform:uppercase;letter-spacing:.08em}
+.go-btn:hover{opacity:.85}
+
+/* AI */
+.ai-box{background:var(--s1);border:1px solid #b8c1d6;border-radius:8px;padding:20px;margin-bottom:18px}
+.ai-hdr{display:flex;align-items:center;gap:8px;margin-bottom:13px}
+.pulse{width:7px;height:7px;background:var(--nevr);border-radius:50%;animation:pu 2s infinite}
+@keyframes pu{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+.ai-lbl{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.13em;color:var(--nevr)}
+.ai-row{display:flex;gap:8px}
+.ai-inp{flex:1;background:var(--s2);border:1px solid var(--bd);border-radius:5px;padding:10px 13px;font-family:'Inter',system-ui,-apple-system,'Segoe UI','Helvetica Neue',Arial,sans-serif;font-size:15px;color:var(--text);outline:none;transition:border-color .2s}
+.ai-inp:focus{border-color:var(--nevr)}
+.ai-inp::placeholder{color:var(--dim)}
+.ai-btn{background:var(--nevr);border:none;border-radius:5px;padding:9px 15px;color:#fbf7ec;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;transition:all .2s;white-space:nowrap}
+.ai-btn:hover{opacity:.85}
+.ai-btn:disabled{opacity:.4;cursor:not-allowed}
+.chips-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.sug{background:var(--s2);border:1px solid var(--bd);border-radius:3px;padding:4px 9px;font-size:11px;color:var(--dim);cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace}
+.sug:hover{border-color:var(--nevr);color:var(--nevr)}
+.ai-load{display:none;font-size:10px;color:var(--dim);font-family:'JetBrains Mono',monospace;margin-top:7px;animation:bk 1s infinite}
+.ai-load.show{display:block}
+@keyframes bk{0%,100%{opacity:1}50%{opacity:.3}}
+.ai-resp{display:none;margin-top:13px}
+.ai-resp.show{display:block;animation:fi .3s ease}
+.ai-resp-txt{background:var(--s2);border-radius:5px;padding:14px 16px;font-size:14px;line-height:1.8;color:var(--text);border-left:3px solid var(--nevr);white-space:pre-wrap}
+
+/* TRANSVERSAL */
+.tv-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:9px}
+.tv-table th{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);padding:6px 9px;text-align:left;border-bottom:1px solid var(--bd)}
+.tv-table td{padding:8px 9px;border-bottom:1px solid rgba(0,0,0,.05);line-height:1.5;vertical-align:top}
+.tv-table tr:hover td{background:rgba(0,0,0,.03)}
+
+/* SYNTHESE */
+.syn-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.syn-item{background:var(--s2);border-radius:5px;padding:12px;display:flex;align-items:center;gap:9px}
+.syn-ico{font-size:18px;flex-shrink:0;width:22px;text-align:center}
+.syn-ttl{font-size:13px;font-weight:600;color:var(--white);margin-bottom:2px}
+.syn-sub{font-size:11px;font-family:'JetBrains Mono',monospace}
+
+/* STICKY */
+.fab{position:fixed;bottom:18px;right:20px;background:var(--nevr);color:#fbf7ec;padding:10px 18px;border-radius:26px;font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;box-shadow:0 4px 16px rgba(40,85,196,.25);transition:all .2s;z-index:50;border:none}
+.fab:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(40,85,196,.35)}
+
+/* INTRO */
+.intro{background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:22px;margin-bottom:18px}
+.intro h1{font-size:24px;font-weight:500;color:var(--white);margin-bottom:6px}
+.intro p{font-size:14px;color:var(--dim);line-height:1.7;margin-bottom:8px}
+.ia-why{background:linear-gradient(135deg,#e8edf8,#dbe3f2);border:1px solid #a8b5d4;border-radius:5px;padding:13px 16px;margin-top:12px}
+.ia-why-t{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--nevr);margin-bottom:8px}
+.ia-why p{font-size:13px;color:#4a5878;margin-bottom:4px;line-height:1.6}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-logo">⬡ Diagnostic Clinique</div>
+  <div class="hdr-title">Arbre Décisionnel Différentiel, Goldman × Young × Pubertaire</div>
+  <div class="hdr-modes">
+    <button class="hbtn on" onclick="setMode('rapide',this)">⚡ Consultation</button>
+    <button class="hbtn" onclick="setMode('complet',this)">📚 Complet</button>
+    <button class="hbtn" onclick="setMode('ecole',this)">🏫 École</button>
+  </div>
+</header>
+
+<div class="wrap">
+<aside class="sb">
+  <div class="sb-sect">
+    <div class="sb-lbl">Organisations</div>
+    <button class="sb-btn" onclick="goOrg('nevr')" id="nav-nevr">
+      <div class="dot" style="background:var(--nevr)"></div>
+      <div><div class="sb-name">Névrotique</div><div class="sb-sub">« Comment dissimuler ma libido ? »</div></div>
+    </button>
+    <button class="sb-btn" onclick="goOrg('depr')" id="nav-depr">
+      <div class="dot" style="background:var(--depr)"></div>
+      <div><div class="sb-name">Dépressive</div><div class="sb-sub">« À quelle distance est l'objet ? »</div></div>
+    </button>
+    <button class="sb-btn" onclick="goOrg('limit')" id="nav-limit">
+      <div class="dot" style="background:var(--limit)"></div>
+      <div><div class="sb-name">Limite</div><div class="sb-sub">« Où sont les limites de mon pouvoir ? »</div></div>
+    </button>
+    <button class="sb-btn" onclick="goOrg('narc')" id="nav-narc">
+      <div class="dot" style="background:var(--narc)"></div>
+      <div><div class="sb-name">Narcissique</div><div class="sb-sub">« Ai-je de la valeur ? »</div></div>
+    </button>
+    <button class="sb-btn" onclick="goOrg('perv')" id="nav-perv">
+      <div class="dot" style="background:var(--perv)"></div>
+      <div><div class="sb-name">Pervers</div><div class="sb-sub">« Qui contrôle les frontières ? »</div></div>
+    </button>
+    <button class="sb-btn" onclick="goOrg('psych')" id="nav-psych">
+      <div class="dot" style="background:var(--psych)"></div>
+      <div><div class="sb-name">Psychotique</div><div class="sb-sub">« Qui suis-je ? »</div></div>
+    </button>
+  </div>
+  <div class="sb-sect">
+    <div class="sb-lbl">Cadres spécifiques</div>
+    <button class="sb-btn" onclick="goOrg('puber')" id="nav-puber">
+      <div class="dot" style="background:var(--puber)"></div>
+      <div><div class="sb-name">Pubertaire</div><div class="sb-sub">Marty, Gutton, Malchair</div></div>
+    </button>
+    <button class="sb-btn" onclick="goOrg('resist')" id="nav-resist">
+      <div class="dot" style="background:var(--resist)"></div>
+      <div><div class="sb-name">Profils résistants</div><div class="sb-sub">Berger × Ciccone × Tremblay</div></div>
+    </button>
+    <button class="sb-btn" onclick="goOrg('school')" id="nav-school">
+      <div class="dot" style="background:var(--school)"></div>
+      <div><div class="sb-name">Milieu scolaire</div><div class="sb-sub">Catheline, Pikas, climat</div></div>
+    </button>
+  </div>
+  <div class="sb-sect">
+    <div class="sb-lbl">Navigation</div>
+    <div class="sb-nav-item" onclick="scrollTo(0,0)">🔍 Triage rapide</div>
+    <div class="sb-nav-item" onclick="go('ai-s')">🤖 Assistant IA</div>
+    <div class="sb-nav-item" onclick="go('tv')">⚖️ Axe transversal</div>
+    <div class="sb-nav-item" onclick="go('syn')">🧭 Boussole</div>
+  </div>
+</aside>
+
+<main class="main">
+
+<!-- INTRO -->
+<div class="intro" id="intro-panel">
+  <h1>Arbre Décisionnel, Diagnostic Différentiel Clinique chez l'enfant et le jeune adolescent</h1>
+  <p>Outil intégrant l'<strong>approche psychanalytique développementale de Caroline Goldman</strong> (six organisations psychopathologiques, étiologies, vignettes cliniques) et la <strong>thérapie des schémas de Jeffrey Young</strong> (schémas précoces inadaptés, modes, guidance parentale).</p>
+  <p><strong>Enrichi pour la clinique de la violence et de l'agressivité</strong> avec les apports de <em>F. Marty</em> et <em>Ph. Gutton</em> (le pubertaire, la violence comme réponse à l'effraction), <em>Ph. Jeanmet</em> et <em>A. Malchair</em> (clivage, continuum normal-pathologique), <em>N. Guédeney</em> (attachement désorganisé et conduites contrôlantes), <em>R. Tremblay</em> (apprentissages d'auto-régulation précoces), <em>M. Berger</em> et <em>A. Ciccone</em> (profils résistants, lien tyrannique, traumatismes précoces), et l'<em>intervention en milieu scolaire</em> (N. Catheline, méthode Pikas, climat scolaire de Debarbieux et Blaya).</p>
+  <div class="ia-why">
+    <div class="ia-why-t">💡 À quoi sert l'IA dans cet outil ?</div>
+    <p>→ <strong>Diagnostic différentiel rapide</strong> : décrivez librement ce que vous observez → hypothèse structurée Goldman + Young + cadres complémentaires</p>
+    <p>→ <strong>Formulations de restitution parentale</strong> directement utilisables, adaptées au niveau de langage</p>
+    <p>→ <strong>Formulations pour équipes éducatives</strong> non-stigmatisantes (principe Pikas)</p>
+    <p>→ <strong>Rappels théoriques ciblés</strong> : étiologies, mécanismes, concepts précis des différentes approches</p>
+    <p>→ <strong>Aide au différentiel</strong> : hyperactivité dépressive / agitation limite, passages à l'acte dépressifs / transgressions limites / violence pubertaire</p>
+    <p>→ <strong>Aide à la décision groupe-classe</strong> : indicateurs, contre-indications, principes non-stigmatisants</p>
+  </div>
+</div>
+
+<!-- TRIAGE -->
+<div class="triage" id="triage">
+  <div class="slbl" style="margin-bottom:12px">🔍 Triage rapide, Ce que j'observe en consultation ou en classe maintenant</div>
+  <div class="obs-grid" id="obs-grid">
+    <div class="chip" data-o="nevr" onclick="tog(this)">💬 Verbalise, nuance, culpabilise</div>
+    <div class="chip" data-o="nevr" onclick="tog(this)">🎭 Séducteur, théâtral, dramatise</div>
+    <div class="chip" data-o="nevr" onclick="tog(this)">🔒 Rituels, besoin de maîtrise, TOC</div>
+    <div class="chip" data-o="nevr" onclick="tog(this)">😰 Angoisses phobiques, sursauts</div>
+    <div class="chip" data-o="depr" onclick="tog(this)">😔 Triste, apathique, sans élan</div>
+    <div class="chip" data-o="depr" onclick="tog(this)">🤗 S'accroche, pleure à séparation</div>
+    <div class="chip" data-o="depr" onclick="tog(this)">🌑 Perd le plaisir, jeux sans joie</div>
+    <div class="chip" data-o="depr" onclick="tog(this)">⚡ Hyperactivité défensive</div>
+    <div class="chip" data-o="limit" onclick="tog(this)">💥 Transgresse, teste, irrévérencieux</div>
+    <div class="chip" data-o="limit" onclick="tog(this)">🌪️ Agitation, vive excitation</div>
+    <div class="chip" data-o="limit" onclick="tog(this)">😱 Peur monstres, insécurité paradoxale</div>
+    <div class="chip" data-o="limit" onclick="tog(this)">🦕 Fascination mort, finitude, dinosaures</div>
+    <div class="chip" data-o="narc" onclick="tog(this)">🏆 Se vante, besoin de briller</div>
+    <div class="chip" data-o="narc" onclick="tog(this)">💔 S'effondre à la moindre critique</div>
+    <div class="chip" data-o="narc" onclick="tog(this)">⚖️ Oscille grandiosité/effondrement</div>
+    <div class="chip" data-o="perv" onclick="tog(this)">🔀 Séduit, manipule, brouille les places</div>
+    <div class="chip" data-o="perv" onclick="tog(this)">⚡ Rivalité intense parent même sexe</div>
+    <div class="chip" data-o="perv" onclick="tog(this)">🎭 Emprise, dénigre, met en concurrence</div>
+    <div class="chip" data-o="psych" onclick="tog(this)">🌀 Contact dispersé, sans accordage</div>
+    <div class="chip" data-o="psych" onclick="tog(this)">😶 Destructivité, sourire sans raison</div>
+    <div class="chip" data-o="psych" onclick="tog(this)">🔄 Fusion, dessins déstructurés</div>
+    <div class="chip" data-o="puber" onclick="tog(this)">⚡ Violence émergente 9, 14 ans avec puberté</div>
+    <div class="chip" data-o="puber" onclick="tog(this)">🛡️ Sent attaqué, violence comme réponse</div>
+    <div class="chip" data-o="puber" onclick="tog(this)">🌀 Corps vécu comme étranger, persécuteur</div>
+    <div class="chip" data-o="resist" onclick="tog(this)">🔁 Six mois sans amorce de changement</div>
+    <div class="chip" data-o="resist" onclick="tog(this)">⛓️ Lien tyrannique, équipe épuisée</div>
+    <div class="chip" data-o="resist" onclick="tog(this)">🏚️ Ruptures précoces, traumatismes anciens</div>
+    <div class="chip" data-o="school" onclick="tog(this)">🌧️ Climat de classe pathogène</div>
+    <div class="chip" data-o="school" onclick="tog(this)">🎯 Provocations actives du groupe</div>
+    <div class="chip" data-o="school" onclick="tog(this)">⚖️ Équipe enseignante divisée</div>
+  </div>
+  <div class="res-banner" id="res-banner">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);margin-bottom:5px">Hypothèses prioritaires</div>
+    <div class="res-tags" id="res-tags"></div>
+    <button class="go-btn" onclick="openSelected()">→ Ouvrir les fiches</button>
+  </div>
+</div>
+
+<!-- AI -->
+<div class="ai-box" id="ai-s">
+  <div class="ai-hdr"><div class="pulse"></div><div class="ai-lbl">Assistant IA clinique, Goldman × Young</div></div>
+  <div class="ai-row">
+    <input class="ai-inp" id="ai-inp" type="text" placeholder="Décrivez ce que vous observez ou posez une question clinique..." onkeydown="if(event.key==='Enter')aiSend()"/>
+    <button class="ai-btn" id="ai-btn" onclick="aiSend()">Analyser →</button>
+  </div>
+  <div class="chips-row">
+    <span class="sug" onclick="setQ('Enfant 7 ans pleure dès que sa mère part, jeux sans plaisir, dort mal, dépressive ou autre ?')">→ Accrochage séparation</span>
+    <span class="sug" onclick="setQ('Enfant transgresse, jette jouets, irrévérencieux, parents excusent. Que faire ?')">→ Transgression</span>
+    <span class="sug" onclick="setQ('Enfant séducteur avec parent opposé, jalousie intense envers parent même sexe, rivalité')">→ Jalousie parentale</span>
+    <span class="sug" onclick="setQ('Enfant s\'effondre à moindre critique, se vante, méprise les autres, honte cachée')">→ Fragilité narcissique</span>
+    <span class="sug" onclick="setQ('Hyperactivité : comment distinguer défensif-dépressif vs limite éducative ?')">→ Diff hyperactivité</span>
+    <span class="sug" onclick="setQ('Comment formuler la guidance parentale pour un enfant limite sans culpabiliser les parents ?')">→ Formulation guidance</span>
+    <span class="sug" onclick="setQ('Passages à l\'acte agressivité/vols, dépressif ou limite ? Comment différencier ?')">→ Passages à l\'acte</span>
+    <span class="sug" onclick="setQ('Pré-adolescent de 12 ans : violence émergente avec puberté, vécu d\'attaque venant des autres. Lecture Marty/Gutton ?')">→ Violence pubertaire</span>
+    <span class="sug" onclick="setQ('Enfant en école, climat de classe pathogène. Faut-il une intervention groupe-classe et comment éviter le bouc émissaire ?')">→ Intervention groupe-classe</span>
+    <span class="sug" onclick="setQ('Profil résistant : 8 mois de suivi sans amorce de changement, ruptures précoces dans l\'histoire. Comment penser le triple croisement Berger × Ciccone × Tremblay ?')">→ Profil résistant</span>
+    <span class="sug" onclick="setQ('Comment formuler à une équipe enseignante non-stigmatisante au sens Pikas, sans désigner publiquement l\'enfant ?')">→ Formulation équipe éducative</span>
+    <span class="sug" onclick="setQ('Conduites contrôlantes envers l\'adulte (Guédeney), comment les distinguer d\'une transgression limite classique ?')">→ Attachement contrôlant</span>
+  </div>
+  <div class="ai-load" id="ai-load">● Analyse en cours...</div>
+  <div class="ai-resp" id="ai-resp"><div class="ai-resp-txt" id="ai-resp-txt"></div></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     BLOC SPÉCIFIQUE : VIOLENCE ET PUBERTAIRE (Marty, Gutton, Malchair)
+════════════════════════════════════════════════════ -->
+<div class="block" id="org-puber" style="--c:var(--puber)">
+  <div class="block-hdr" onclick="tog2('puber')">
+    <div class="bar" style="background:var(--puber)"></div>
+    <div class="bhi"><div class="bh-name">⚡ Pubertaire et violence, lecture psychodynamique</div><div class="bh-q">« Y a-t-il un lien naturel entre adolescence et violence ? »</div></div>
+    <div class="badges"><span class="badge" style="color:var(--puber);border-color:var(--puber)">Marty</span><span class="badge" style="color:var(--puber);border-color:var(--puber)">Gutton</span><span class="badge" style="color:var(--puber);border-color:var(--puber)">Jeanmet</span></div>
+    <div class="chev">▾</div>
+  </div>
+  <div class="body">
+    <div class="tabs">
+      <div class="tab on" onclick="swTab(this,'pubc')">🔍 Clinique</div>
+      <div class="tab" onclick="swTab(this,'pubcont')">📚 Continuum</div>
+      <div class="tab" onclick="swTab(this,'pubdiag')">🧭 Différentiel</div>
+      <div class="tab" onclick="swTab(this,'pubparent')">👨‍👩‍👧 Soutien narcissique parental</div>
+      <div class="tab" onclick="swTab(this,'pubcab')">🛠 Conduite à tenir</div>
+    </div>
+
+    <div class="pane on" id="pubc">
+      <div class="slbl">Quand mobiliser ce cadre ?, Enfants tardifs et jeunes adolescents (9, 14 ans)</div>
+      <div class="g2" style="margin-bottom:12px">
+        <div class="icard"><span class="ico">⚡</span>Émergence ou intensification brutale d'agirs violents à l'approche de la puberté</div>
+        <div class="icard"><span class="ico">🌀</span>Sentiment de « corps étranger », plaintes corporelles inexpliquées</div>
+        <div class="icard"><span class="ico">😨</span>Vécu persécutif soudain : « tout le monde m'en veut »</div>
+        <div class="icard"><span class="ico">🛡️</span>Violence vécue comme réponse à une attaque ressentie venant de l'extérieur</div>
+        <div class="icard"><span class="ico">🔄</span>Oscillation entre adaptation « charmante » et destructivité (clivage à interroger)</div>
+        <div class="icard"><span class="ico">💔</span>Conflit massif avec parent du même sexe, désinvestissement brutal</div>
+        <div class="icard"><span class="ico">🌑</span>Position dépressive qui resurgit, abandonnisme</div>
+        <div class="icard"><span class="ico">🎭</span>Réaction parentale d'effondrement ou de séduction face à l'agressivité</div>
+      </div>
+      <div class="hbox">
+        <h4>Thèse de fond, Marty (1997, 2003)</h4>
+        <p style="font-size:13px;color:var(--text);line-height:1.7;margin-top:4px">La violence à l'adolescence est d'abord <em>la violence de l'adolescence elle-même</em>, c'est-à-dire celle de l'effraction pubertaire qui ébranle le corps et la psyché. La violence agie n'est pas le fruit d'un conflit mais une <strong>réaction instinctive de survie</strong> face à une menace ressentie comme vitale, visant à préserver l'intégrité narcissique d'un sujet en détresse.</p>
+      </div>
+      <div class="vignette">
+        <strong>Citation Marty (cf. Malchair, 2000)</strong>
+        « À l'adolescence, la violence semble venir de l'objet, pas de la pulsion. Au plus fort du passage, la haine qu'il éprouve lui paraît légitime, parce qu'elle se donne comme réponse à une attaque dont il se sent la victime. C'est le règne de la haine et de la paranoïa ordinaires de l'adolescence. La violence est toujours celle de l'autre, la sienne n'est que réponse. »
+      </div>
+      <div class="cle">🌿 Clé : la violence pubertaire n'est pas une transgression au sens « limite », c'est une tentative désespérée de tenir une identité ébranlée.</div>
+    </div>
+
+    <div class="pane" id="pubcont">
+      <div class="slbl">Continuum du normal au pathologique (Malchair, 2000)</div>
+      <p style="font-size:13px;color:var(--text);line-height:1.7;margin-bottom:10px">Malchair propose un cheminement « le long d'une ligne où la maîtrise pulsionnelle est de plus en plus faible », ce qui permet de situer cliniquement la position d'un jeune sans plaquer un diagnostic.</p>
+
+      <div class="etio-item" style="border-color:var(--puber)">
+        <strong>1. Violence intrapsychique normale (Gutton, Le pubertaire, PUF, 1991)</strong>
+        Le pubertaire est en lui-même porteur d'une « pulsionnalité en excès » qui réveille la problématique œdipienne avec, cette fois, un corps qui rend les fantasmes réalisables. L'angoisse de castration et l'angoisse d'abandon sont massives. Cette violence reste latente et permet la maturation.
+      </div>
+      <div class="etio-item" style="border-color:var(--puber)">
+        <strong>2. Agressivité réactionnelle (Gutton)</strong>
+        Quand les parents soutiennent le pubertaire sans s'offrir comme objet de désir, ils permettent l'« agressivité réactionnelle à cette frustration », nécessaire au deuil des objets parentaux œdipiens.
+      </div>
+      <div class="etio-item" style="border-color:var(--puber)">
+        <strong>3. Paranoïa ordinaire (Marty, 1997)</strong>
+        Vécu transitoire mais intense où l'adolescent accroche les objets externes tout en les vivant comme sources de tourment. « Breakdown non pathologique » (Laufer), « moment quasi-psychotique » (Green).
+      </div>
+      <div class="etio-item" style="border-color:var(--puber)">
+        <strong>4. Passage à l'acte comme tentative de symbolisation (Roussillon, 2000)</strong>
+        L'agir prend la place de la parole non pas par incapacité à penser, mais comme tentative de symbolisation par la <em>réalisation</em>, faute de pouvoir passer par le refoulement. L'autre devient objet involontaire d'étayage.
+      </div>
+      <div class="etio-item" style="border-color:var(--puber)">
+        <strong>5. Clivage du Moi (Jeanmet, cf. Malchair)</strong>
+        « Les troubles graves du comportement de type délinquant, toxicomaniaque, anorectique, certaines dysmorphophobies isolent tout un courant de la vie psychique et libidinale qui trouve refuge dans le symptôme. » Une façade allure-névrotique cohabite avec un fonctionnement archaïque parfois gravissime.
+      </div>
+      <div class="etio-item" style="border-color:var(--puber)">
+        <strong>6. Toute-puissance et désubjectivation (Balier, Crivillé)</strong>
+        Quand l'angoisse menace l'effondrement, seul reste « l'acte de toute-puissance qui mène le jeune hors fonctionnement mental ». L'autre cesse d'exister comme sujet : il devient un objet à maîtriser. La solution perverse apparaît en filigrane comme issue momentanée à la problématique pulsionnelle.
+      </div>
+      <div class="etio-item" style="border-color:var(--puber)">
+        <strong>7. Mécanismes psychotiques sous-jacents (Balier)</strong>
+        Compensations mégalomaniaques en réaction à des faillites graves du narcissisme, passivité masquée par le passage à l'acte, qualité psychotique de la pulsion agressive. L'issue violente devient tentative désespérée de maîtriser un monde infiniment dangereux ; l'échec amène la répétition, jusqu'au retournement contre soi.
+      </div>
+    </div>
+
+    <div class="pane" id="pubdiag">
+      <div class="slbl">Différentiel : violence pubertaire vs comportement « limite »</div>
+      <table class="tv-table">
+        <thead><tr><th>Indice</th><th>Plutôt pubertaire (Marty/Gutton)</th><th>Plutôt limite (Goldman)</th></tr></thead>
+        <tbody>
+          <tr><td>Âge d'émergence</td><td>Apparition ou intensification 9, 14 ans avec puberté</td><td>Continuité depuis 4, 5 ans, indépendamment de la puberté</td></tr>
+          <tr><td>Rapport au corps</td><td>Corps vécu comme étranger, persécuteur</td><td>Rapport au corps stable, recherche de contenance</td></tr>
+          <tr><td>Logique de l'agir</td><td>Réponse défensive à une menace ressentie</td><td>Défaut de contenance, débordement pulsionnel chronique</td></tr>
+          <tr><td>Lien au parent</td><td>Recherche d'« adultes qui tiennent », besoin de soutien narcissique</td><td>Recherche de limite, de tiers symbolique</td></tr>
+          <tr><td>Intervention clé</td><td>Soutien narcissique du jeune et des parents</td><td>Restauration du cadre et de l'interdit structurant</td></tr>
+        </tbody>
+      </table>
+      <div class="alert" style="margin-top:12px">
+        ⚠️ <strong>Traumatisme cumulatif (Marty, 2003)</strong><br>
+        Quand un événement traumatique vécu dans l'enfance entre en résonance avec l'effraction pubertaire, l'adolescent peut être précipité dans des agirs violents. Le pubertaire répète alors le <strong>traumatisme par séduction</strong> ou le <strong>traumatisme par carence</strong> (Winnicott, 1974). Le cumul des deux conduit à l'acte comme mode de traitement du traumatisme. Toujours rechercher en amont les carences précoces et les vécus traumatiques infantiles.
+      </div>
+    </div>
+
+    <div class="pane" id="pubparent">
+      <div class="slbl">Le soutien narcissique parental (Ph. Gutton, 1990)</div>
+      <div class="mblock" style="border-color:var(--puber)">
+        <div class="mt" style="color:var(--puber)">Principe fondamental</div>
+        <ul class="ml">
+          <li>Les parents soutiennent le processus pubertaire <strong>sans s'offrir comme objet de désir adéquat</strong></li>
+          <li>Ils ne prennent pas la place qui n'est plus celle d'un parent (ami, confident, partenaire)</li>
+          <li>Ils permettent et tolèrent l'agressivité réactionnelle à la frustration imposée par cette mise à distance</li>
+          <li>Ils résistent à la pression contraire à leurs propres désirs (rester l'objet aimé exclusif)</li>
+        </ul>
+      </div>
+      <div class="alert">
+        ⚠️ <strong>Risque clinique (Gutton)</strong><br>
+        « Ne tolérant pas cette agressivité normale, certains parents augmentent la charge de séduction dans la relation avec leur adolescent et l'acculent à la violence comme sauvegarde narcissique. » La violence agie peut alors signer un échec du soutien narcissique parental, non un défaut de limite chez l'enfant.
+      </div>
+      <div class="hbox" style="margin-top:10px">
+        <h4>Détresse parentale en miroir (Marty, 2003)</h4>
+        <p style="font-size:13px;color:var(--text);line-height:1.7;margin-top:4px">« Ce qui frappe, c'est la détresse des parents face à la violence de leur adolescent, leur incapacité à résister à la destructivité. Ils sont démunis, comme s'ils étaient encore dans une sorte d'inachèvement de leur propre adolescence. » La violence du jeune peut commémorer, en l'agissant, celle que les parents n'ont pu vivre à l'égard de leurs propres parents. Travailler la détresse parentale est souvent une condition d'efficacité.</p>
+      </div>
+      <div class="vignette" style="margin-top:8px">
+        <strong>Repère thérapeutique central (Marty)</strong>
+        L'adolescent attend de ses parents, de son thérapeute, de tout adulte référent, <em>qu'ils ne s'effondrent pas face à sa propre violence</em>. Car cette violence est autant l'expression d'une force nouvelle que d'une menace qui attaque de l'intérieur.
+      </div>
+    </div>
+
+    <div class="pane" id="pubcab">
+      <div class="two-col">
+        <div>
+          <div class="slbl">Côté jeune</div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Tenir sans s'effondrer ni contre-attaquer</span></div>
+            <ul class="cl"><li>Ne pas répondre à la violence par la violence</li><li>Ne pas s'effondrer (sentiment d'irréparable, culpabilité massive)</li><li>Nommer ce qui semble venir de l'objet (« tu te sens attaqué »)</li><li>Permettre l'expression de la haine sans rétorsion</li><li>Mise en récit comme perspective de reconstruction subjectale (Marty)</li></ul>
+            <div class="ic">🌿 La parole crée des liens associatifs qui reconstituent la trame sur laquelle peut se reprendre une histoire.</div>
+          </div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Souplesse et élargissement du cadre</span></div>
+            <ul class="cl"><li>Adapter rythme et durée des entretiens</li><li>Accepter des temps d'évitement, de silence, d'agir</li><li>Préserver une continuité même fragile</li><li>Soutenir l'intériorisation de la fonction maternelle</li></ul>
+          </div>
+        </div>
+        <div>
+          <div class="slbl">Côté parents</div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Étayage parental indispensable</span></div>
+            <ul class="cl"><li>Travail spécifique avec les parents en parallèle</li><li>Nommer la légitimité de l'agressivité pubertaire</li><li>Soutenir leur capacité à « tenir » sans masochisme ni contre-violence</li><li>Repérer les inachevés adolescents des parents</li><li>Distinguer leur détresse de celle de l'adolescent</li></ul>
+            <div class="ic">🌿 La capacité parentale à offrir un support à l'agressivité est ce qui permet au conflit de s'intérioriser.</div>
+          </div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Articulation avec environnement</span></div>
+            <ul class="cl"><li>Mobiliser des adultes « tiers » qui tiennent (enseignants, oncle, entraîneur)</li><li>Éviter le huis clos familial</li><li>Pour le contexte scolaire, voir le bloc « Intervention en milieu scolaire »</li></ul>
+          </div>
+        </div>
+      </div>
+      <div class="cle">🎯 Objectif : restaurer un soutien narcissique pluri-adulte qui permette à la violence de se transformer plutôt que de s'effectuer.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     1. NÉVROTIQUE
+════════════════════════════════════════════════════ -->
+<div class="block" id="org-nevr" style="--c:var(--nevr)">
+  <div class="block-hdr" onclick="tog2('nevr')">
+    <div class="bar" style="background:var(--nevr)"></div>
+    <div class="bhi"><div class="bh-name">Organisation Névrotique</div><div class="bh-q">« Comment dissimuler ma libido et mon agressivité ? »</div></div>
+    <div class="badges"><span class="badge" style="color:var(--nevr);border-color:var(--nevr)">Goldman</span><span class="badge" style="color:var(--nevr);border-color:var(--nevr)">Young</span></div>
+    <div class="chev">▾</div>
+  </div>
+  <div class="body">
+    <div class="tabs">
+      <div class="tab on" onclick="swTab(this,'nc')">🔍 Clinique</div>
+      <div class="tab" onclick="swTab(this,'ng')">🧠 Goldman</div>
+      <div class="tab" onclick="swTab(this,'ny')">🧩 Young</div>
+      <div class="tab" onclick="swTab(this,'ne')">🔬 Étiologie</div>
+      <div class="tab" onclick="swTab(this,'nguid')">🛠 Guidance</div>
+    </div>
+
+    <div class="pane on" id="nc">
+      <div class="slbl">Signes en cabinet, Composante hystérique (libido prévalente)</div>
+      <div class="g2" style="margin-bottom:12px">
+        <div class="icard"><span class="ico">💬</span>Élaboré, intelligent, sé­duc­teur, fluidité verbale</div>
+        <div class="icard"><span class="ico">🎭</span>Théâtralisme, dramatisation, expression d'affect</div>
+        <div class="icard"><span class="ico">🗣️</span>Forte excitation orale : parler, manger</div>
+        <div class="icard"><span class="ico">😰</span>Angoisses phobiques (l'objet phobogène incarne le conflit pulsionnel)</div>
+        <div class="icard"><span class="ico">⚡</span>Sursauts au moindre bruit (culpabilité latente d'être pris en faute)</div>
+        <div class="icard"><span class="ico">😡</span>Hostilité envers représentants du même sexe (parent, prof, nounou)</div>
+        <div class="icard"><span class="ico">🏫</span>Décrochage scolaire ou inhibitions sociales</div>
+        <div class="icard"><span class="ico">📅</span>Pubertés précoces possibles dès 8 ans</div>
+      </div>
+
+      <div class="slbl">Composante obsessionnelle (agressivité prévalente)</div>
+      <div class="g2" style="margin-bottom:12px">
+        <div class="icard"><span class="ico">🔒</span>Élaboré, solitaire, cherche la maîtrise des événements</div>
+        <div class="icard"><span class="ico">📋</span>Critiquen le désordre, considérations hygiénistes ou morales</div>
+        <div class="icard"><span class="ico">😬</span>Anxieux face aux imprévus</div>
+        <div class="icard"><span class="ico">💥</span>Pics imposants d'agressivité</div>
+        <div class="icard"><span class="ico">🔁</span>TOC : rituels répétitifs impliquant parfois les proches</div>
+        <div class="icard"><span class="ico">⚠️</span>NB : les procédés obsessionnels ne signent pas une névrose, présents dans d'autres organisations</div>
+      </div>
+
+      <div class="vignette">
+        <strong>Vignette Goldman, Hystérie</strong>
+        Fillette qui harcelait son institutrice de questions pendant les heures de classe : sous couvert de vif intérêt pour les contenus scolaires, c'était une façon inconsciente de l'irriter et de conflictualiser avec elle, rivalité parricide/matricide déplacée.
+      </div>
+      <div class="vignette">
+        <strong>Hystérie de conversion (Goldman)</strong>
+        L'enfant immobilise un membre de son corps (jambe, bras) ou un organe sensoriel (vue, goût) dans un mouvement punitif retourné contre lui du mouvement incestueux jugé intolérable par le surmoi.
+      </div>
+      <div class="cle">🌿 Clé : ici on ajuste, on ne reconstruit pas. La structure est là, elle a juste besoin d'être allégée.</div>
+    </div>
+
+    <div class="pane" id="ng">
+      <div class="mblock" style="border-color:var(--nevr)">
+        <div class="mt" style="color:var(--nevr)">Lecture psychanalytique, Goldman</div>
+        <ul class="ml">
+          <li>Complexe d'Œdipe activé (5-7 ans, dès 4 ans ½ pour les plus précoces) : fantasmes incestueux et parricides/matricides très mobilisants</li>
+          <li>Aussi ardents que culpabilisants, d'où le refoulement nécessaire</li>
+          <li>Refoulement opérant, l'enfant inhibe ses pulsions</li>
+          <li>Surmoi structuré, instance morale intégrée</li>
+          <li>Ambivalence intégrée : peut aimer et haïr simultanément</li>
+          <li>Capacité de symbolisation, utilise langage et jeu symbolique</li>
+          <li>Traversé avec succès les stades précédents (ancrage réalité, séparation, limites, narcissisme)</li>
+        </ul>
+      </div>
+      <div class="alert">⚠️ NB Goldman : enfants évoluant dans une problématique <em>limite</em> peuvent traverser les fantasmes œdipiens avec une trop grande crudité, il ne s'agit pas alors d'une névrose au sens organisationnel, mais d'une problématique limite à laquelle des symptômes comportementaux sont toujours associés.</div>
+    </div>
+
+    <div class="pane" id="ny">
+      <div class="mblock" style="border-color:#2855c4">
+        <div class="mt" style="color:#1e4399">Thérapie des Schémas, Young</div>
+        <ul class="ml">
+          <li>Schémas présents mais <strong>modulables</strong>, flexibilité psychique conservée</li>
+          <li>Mode adulte émergent, bonne capacité réflexive</li>
+          <li>Parent critique modéré, auto-critique sans effondrement</li>
+          <li>Bonne capacité de mentalisation</li>
+          <li>Schéma d'emprise/dépendance si fixation œdipienne forte</li>
+        </ul>
+      </div>
+      <div class="slbl" style="margin-top:12px">Correspondances Goldman × Young</div>
+      <div style="margin-top:8px">
+        <div class="corr-row"><div class="corr-l">Fixation œdipienne</div><div class="corr-r">→ Schéma d'emprise / dépendance / abandon (conflit lien/séparation)</div></div>
+        <div class="corr-row"><div class="corr-l">Surmoi tyrannique</div><div class="corr-r">→ Parent critique/punitif internalisé (auto-dévalorisation)</div></div>
+        <div class="corr-row"><div class="corr-l">Refoulement opérant</div><div class="corr-r">→ Modes flexibles, adulte sain émergent</div></div>
+      </div>
+    </div>
+
+    <div class="pane" id="ne">
+      <div class="slbl">Étiologie selon Goldman, Ce qui génère la fixation œdipienne</div>
+      <div class="etio-item" style="border-color:var(--nevr)">
+        <strong>Le parent de l'autre sexe est trop excitant (séduction)</strong>
+        Certains pères déclarent à leur fillette "tu es ma petite femme", "tu te marieras avec papa plus tard", lui offrant des plages de liens privilégiés inadéquats dont sont exclues les mères. Des mères continuent à laver leurs fils sous la douche après la latence ou se promènent nues devant eux sans réaliser la charge érotique.
+      </div>
+      <div class="vignette">
+        <strong>Vignette clinique Goldman</strong>
+        Père rentrant du travail accueilli par sa fillette de 10 ans (mère déjà endormie), s'épanchant depuis le lit où il la câlinait, sur tous ses tracas de la journée → confusion des postures mère/fille → symptomatologie hystérique prégnante.
+      </div>
+      <div class="etio-item" style="border-color:var(--nevr)">
+        <strong>Le parent du même sexe entretient la rivalité (manque de "courant tendre")</strong>
+        Parent agressif avec l'enfant du même sexe dans un triste jeu de répétition transgénérationnel, le conflit de la mère avec sa propre mère est rejoué avec sa fille. Père psychiatre convaincu que son fils allait devenir schizophrène (alors que le bilan révélait une névrose) : projection violente signant un manque de courant tendre.
+      </div>
+      <div class="etio-item" style="border-color:var(--nevr)">
+        <strong>Événement conjoncturel perturbant l'élaboration œdipienne</strong>
+        Divorce ou conflits majeurs à 5-6 ans peuvent générer une ouverture fantasmatique vers la réalisation du vœu incestueux. Décès d'un parent = peut avoir goût de punition surmoïque. Exemple de Goldman : sœur Emmanuelle qui à 6 ans vit son père adoré se noyer sous ses yeux → vœu de chasteté comme expiation.
+      </div>
+    </div>
+
+    <div class="pane" id="nguid">
+      <div class="two-col">
+        <div>
+          <div class="slbl">Goldman</div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Apaiser l'excitation œdipienne</span></div>
+            <ul class="cl"><li>Éviter les confidences conjugales à l'enfant</li><li>Ne pas le mettre en position de "petit partenaire affectif"</li><li>Réduire les ambiguïtés physiques ou verbales ("mon amoureux"...)</li></ul>
+            <div class="ic">🌿 Ne pas laisser l'enfant s'asseoir à la table du couple. Il a sa chaise, mais pas à cette place-là.</div>
+          </div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Clarifier les places générationnelles</span></div>
+            <ul class="cl"><li>Les décisions importantes sont prises par les adultes</li><li>Ne pas négocier l'autorité sur un mode d'égal à égal</li><li>"C'est notre rôle de décider."</li></ul>
+            <div class="ic">🌿 Dans un bateau, l'enfant peut tenir la carte, mais ce ne sont pas ses mains sur le gouvernail.</div>
+          </div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Soutenir la différenciation</span></div>
+            <ul class="cl"><li>Encourager les activités autonomes</li><li>Autoriser les désaccords sans dramatisation</li><li>Valider l'émotion sans céder sur la règle</li></ul>
+            <div class="ic">🌿 L'enfant doit pouvoir marcher à côté de vous, pas collé contre vous.</div>
+          </div>
+        </div>
+        <div>
+          <div class="slbl">Young</div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Renforcer le parent bienveillant interne</span></div>
+            <ul class="cl"><li>Quand l'enfant se critique, reformuler avec douceur</li><li>"Tu as raté ton exercice, mais ça ne fait pas de toi quelqu'un de nul."</li></ul>
+            <div class="ic">🌿 Installer une voix qui parle moins comme un juge, plus comme un coach.</div>
+          </div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Encourager l'autonomie émotionnelle</span></div>
+            <ul class="cl"><li>"Qu'est-ce que tu pourrais faire pour t'aider là ?"</li><li>Ne pas toujours intervenir immédiatement</li></ul>
+            <div class="ic">🌿 Lui apprendre à allumer sa propre lampe torche quand il fait sombre.</div>
+          </div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Nommer les affects</span></div>
+            <ul class="cl"><li>"Je crois que tu es partagé entre colère et tristesse."</li><li>Mettre des mots avant que le corps ne les crie</li></ul>
+            <div class="ic">🌿 Mettre des étiquettes sur les bocaux avant que tout ne se mélange.</div>
+          </div>
+        </div>
+      </div>
+      <div class="cle">🎯 Objectif : maintenir l'équilibre conflictuel sans rigidification.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     2. DÉPRESSIVE
+════════════════════════════════════════════════════ -->
+<div class="block" id="org-depr" style="--c:var(--depr)">
+  <div class="block-hdr" onclick="tog2('depr')">
+    <div class="bar" style="background:var(--depr)"></div>
+    <div class="bhi"><div class="bh-name">Organisation Dépressive</div><div class="bh-q">« À quelle distance de moi se trouve l'objet aimé ? »</div></div>
+    <div class="badges"><span class="badge" style="color:var(--depr);border-color:var(--depr)">Goldman</span><span class="badge" style="color:var(--depr);border-color:var(--depr)">Young</span></div>
+    <div class="chev">▾</div>
+  </div>
+  <div class="body">
+    <div class="tabs">
+      <div class="tab on" onclick="swTab(this,'dc')">🔍 Clinique</div>
+      <div class="tab" onclick="swTab(this,'dg')">🧠 Goldman</div>
+      <div class="tab" onclick="swTab(this,'dy')">🧩 Young</div>
+      <div class="tab" onclick="swTab(this,'de')">🔬 Étiologie</div>
+      <div class="tab" onclick="swTab(this,'dguid')">🛠 Guidance</div>
+    </div>
+
+    <div class="pane on" id="dc">
+      <div class="slbl">Signes observables, Goldman</div>
+      <div class="g2" style="margin-bottom:12px">
+        <div class="icard"><span class="ico">😔</span>Tristesse, apathie, inexpressivité, manque de ressort pulsionnel</div>
+        <div class="icard"><span class="ico">🤗</span>Accrochage, pleurs à la séparation, angoisse de perte d'objet</div>
+        <div class="icard"><span class="ico">🎮</span>Jeux, camarades, dessins évoqués et abordés sans plaisir</div>
+        <div class="icard"><span class="ico">😴</span>Troubles du sommeil et/ou de l'alimentation</div>
+        <div class="icard"><span class="ico">⚡</span>Hyperactivité défensive (pour ne pas s'effondrer), ne pas confondre avec Limite !</div>
+        <div class="icard"><span class="ico">😤</span>Passages à l'acte (agressivité, violence, vols) = appel désespéré à l'attention parentale</div>
+        <div class="icard"><span class="ico">🏫</span>Pleurs incessants en maternelle / premier chagrin d'amour dévastateur à l'adolescence</div>
+        <div class="icard"><span class="ico">💭</span>Troubles de la pensée ou de la vie instinctuelle</div>
+      </div>
+      <div class="alert">
+        ⚠️ <strong>Pièges diagnostiques critiques (Goldman)</strong><br>
+        • Certains <strong>passages à l'acte</strong> (agressivité, violence, vols) ne relèvent absolument pas d'une problématique limite et cachent au contraire une détresse affective sollicitant désespérément l'attention parentale → les éclairages du bilan psychologique sont ici particulièrement utiles<br>
+        • L'<strong>hyperactivité</strong> d'un enfant (qui ne constitue généralement qu'un moyen défensif de lutter contre une menace d'effondrement dépressif) peut être comprise par les parents comme un manque de limites → ils le carencent davantage en offrant des réponses de plus en plus répressives, creusant encore la dépression
+      </div>
+      <div class="cle">🌿 Clé : renforcer le lien avant d'exiger l'autonomie. L'enfant doit d'abord être "plein" pour se détacher.</div>
+    </div>
+
+    <div class="pane" id="dg">
+      <div class="mblock" style="border-color:var(--depr)">
+        <div class="mt" style="color:var(--depr)">Lecture psychanalytique, Goldman</div>
+        <ul class="ml">
+          <li>L'enfant doit s'être senti <strong>pleinement nourri</strong> pour se séparer sereinement, c'est ce "plein" qui permettra le détachement</li>
+          <li>Ruptures précoces traumatiques → dépendance pathologique : seule la présence effective rassure, l'autre n'a pas été internalisé</li>
+          <li>Angoisse de perte d'objet (de séparation)</li>
+          <li>Dépendance anaclitique</li>
+          <li>Inhibition pulsionnelle</li>
+        </ul>
+      </div>
+      <div class="hbox">
+        <h4>Ce que l'enfant doit expérimenter (Goldman)</h4>
+        <ul class="cl" style="margin-top:4px">
+          <li>Son agressivité n'anéantit pas l'objet</li>
+          <li>Sa tristesse ne le rend pas "trop lourd"</li>
+          <li>La figure parentale ne disparaît pas après un conflit</li>
+          <li>→ Ce travail permet l'intériorisation progressive d'un objet stable</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="pane" id="dy">
+      <div class="mblock" style="border-color:#6d28d9">
+        <div class="mt" style="color:#5b1aaa">Thérapie des Schémas, Young</div>
+        <ul class="ml">
+          <li><strong>Schéma d'abandon</strong>, l'enfant ne croit pas profondément que le lien est stable</li>
+          <li><strong>Schéma de carence affective</strong>, manque d'étayage émotionnel</li>
+          <li><strong>Mode enfant vulnérable dominant</strong></li>
+          <li>Une seule parole rassurante ne suffit pas → la sécurité se construit par <strong>répétition</strong></li>
+        </ul>
+      </div>
+      <div class="hbox">
+        <h4>Métaphore fondamentale (Young)</h4>
+        <p style="font-size:14px;font-style:italic;color:var(--text);line-height:1.7;margin-top:5px">C'est comme remplir un réservoir percé. Au début, l'eau semble disparaître aussitôt versée. On pourrait croire que cela ne sert à rien. Mais à force de remplir, le niveau monte quand même. <strong style="color:var(--white)">La sécurité affective fonctionne par accumulation.</strong></p>
+      </div>
+    </div>
+
+    <div class="pane" id="de">
+      <div class="slbl">Étiologie selon Goldman, Facteurs générateurs de dépression infantile</div>
+      <div class="etio-item" style="border-color:var(--depr)">
+        <strong>La carence affective</strong>
+        Abandon, placements, absence parentale, réponses relationnelles opératoires, grandes exigences narcissiques de rendement scolaire. Parents très actifs professionnellement, très critiques et exigeants, mais n'offrant aucun temps de partage relationnel → ils ont occulté que pour recevoir il fallait donner à l'enfant plus que la gestion strictement organisationnelle de son quotidien.
+      </div>
+      <div class="etio-item" style="border-color:var(--depr)">
+        <strong>La dépression parentale</strong>
+        Infiltre assez irrémédiablement l'enfant en construction, en particulier si elle touche le parent le plus proche au quotidien. La dépression maternelle post-partum témoigne souvent de la reviviscence d'un vécu infantile douloureux. La dépression paternelle a un impact central sur le garçon en raison de ses fortes mobilisations identificatoires.
+      </div>
+      <div class="vignette">
+        <strong>Vignette clinique Goldman, Dépression masquée</strong>
+        Enfant de 8 ans "idéal" (bon élève, aîné très responsable) qui se plantait des compas dans les avant-bras. Le bilan révèle qu'il avait retourné toute sa pulsionnalité agressive contre lui, à défaut d'avoir pu l'adresser à son père (toujours au travail) et à sa mère débordée. Il se sentait chargé d'étayer sa mère en remplaçant le père absent.
+      </div>
+      <div class="etio-item" style="border-color:var(--depr)">
+        <strong>Le défaut d'implication du père (Winnicott, 1957)</strong>
+        Le père constitue le séparateur de la dyade et devient médiateur du social. Il symbolise ce qui fonctionnera comme limite à la jouissance de l'enfant et s'inscrit dans les nécessités de l'intégration sociale. Son absence génère des angoisses de séparation et des difficultés d'intégration.
+      </div>
+
+      <div class="slbl" style="margin-top:16px">Apports complémentaires, sur les carences précoces et l'abandonnisme</div>
+
+      <div class="etio-item" style="border-color:var(--depr)">
+        <strong>N. Guédeney, attachement insécure et désorganisé</strong>
+        La carence affective décrite par Goldman trouve un éclairage opérationnel dans la théorie de l'attachement. Les modèles internes opérants de l'enfant en insécurité d'attachement organisent durablement sa lecture du monde relationnel. Un attachement insécure-évitant peut sous-tendre l'apparence « autonome précoce » qui cache un effondrement dépressif latent ; un attachement désorganisé majore le risque de bascules émotionnelles, de difficultés de mentalisation, et de conduites contrôlantes ultérieures.
+      </div>
+
+      <div class="etio-item" style="border-color:var(--depr)">
+        <strong>Ph. Jeanmet et A. Malchair, l'abandonnisme et la « quête de sensations » (cf. PDF Liège, 2000)</strong>
+        Dans les carences relationnelles précoces, « l'enfant développe une activité de quête de sensations. À la place de la mère, il recherche des sensations physiques douloureuses qui ont toujours une dimension autodestructrice. L'absence de l'objet investi n'est plus remplacée par le plaisir du recours à une activité mentale ou corporelle, mais par l'auto-stimulation mécanique du corps. La violence de cette auto-stimulation est proportionnelle au degré de carence en ressources auto-érotiques. » À l'adolescence : <strong>« abandonner avant d'être abandonné, détruire avant d'être détruit »</strong>.
+      </div>
+
+      <div class="etio-item" style="border-color:var(--depr)">
+        <strong>M. Berger, traumatismes précoces et souffrance de séparation</strong>
+        Dans <em>L'enfant et la souffrance de la séparation</em>, Berger souligne combien les séparations mal accompagnées, les placements répétés, les ruptures du lien (notamment en protection de l'enfance) produisent un noyau dépressif lourd, souvent masqué par une apparente adaptation ou par des passages à l'acte qui sollicitent désespérément l'attention. À reconnaître particulièrement chez les enfants en parcours institutionnel ou en familles recomposées multiples.
+      </div>
+
+      <div class="hbox">
+        <h4>Articulation clinique</h4>
+        <p style="font-size:13px;color:var(--text);line-height:1.7;margin-top:4px">Goldman insiste sur les passages à l'acte agressifs comme <em>appel désespéré à l'attention parentale</em>. Jeanmet précise le mouvement : il s'agit pour l'enfant d'« interpeller l'autre, à l'appeler à exister » (Marty, 2003). Cette lecture évite l'erreur de réponse répressive et oriente vers l'étayage affectif.</p>
+      </div>
+    </div>
+
+    <div class="pane" id="dguid">
+      <div class="two-col">
+        <div>
+          <div class="slbl">Goldman</div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Présence qualitative répétée</span></div>
+            <ul class="cl"><li>Présence régulière et prévisible, même brève</li><li>Présence corporelle : regard, posture tournée, voix calme</li><li>Tolérer les affects négatifs sans se retirer</li><li>Ne pas moraliser la tristesse ou la dépendance</li><li>Après une crise : revenir vers l'enfant physiquement</li><li>"Je suis toujours là." (implicite ou explicite)</li></ul>
+            <div class="ic">🌿 La relation était écrite au crayon. Réécrire le lien à l'encre.</div>
+          </div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Réintroduire le plaisir partagé</span></div>
+            <ul class="cl"><li>Activité simple sans objectif de performance</li><li>Rire ensemble sans pédagogie</li><li>"Je t'aime même quand tu rates."</li></ul>
+            <div class="ic">🌿 Remettre de la couleur dans une pièce devenue grise. L'enfant n'est pas un bulletin scolaire avec des jambes.</div>
+          </div>
+        </div>
+        <div>
+          <div class="slbl">Young</div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Réassurance répétée</span></div>
+            <ul class="cl"><li>"Je suis là." "Je ne pars pas."</li><li>"Même quand tu es triste, je reste."</li><li>Après conflit : "On peut se disputer et s'aimer quand même."</li><li>Anticiper séparations : "Je viens te chercher à 16h30. Toujours."</li><li>Tolérer que l'enfant redemande même si vous avez déjà répondu</li><li>Rassurer aussi sans crise, dans les moments calmes</li></ul>
+            <div class="ic">🌿 Réservoir percé : à force de remplir, le niveau monte quand même.</div>
+          </div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Réponses prévisibles et cohérentes</span></div>
+            <ul class="cl"><li>Même règle = même réponse</li><li>Même séparation = même rituel</li><li>Éviter les menaces non tenues</li><li>Si vous avez dit "je viens", vous venez</li><li>Si vous avez dit "on en reparle", vous en reparlez</li></ul>
+            <div class="ic">🌿 La cohérence parentale transforme la mer agitée en marée régulière, il peut enfin anticiper le mouvement.</div>
+          </div>
+        </div>
+      </div>
+      <div class="cle">🎯 Objectif : sécurisation affective + restauration de l'élan vital.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     3. LIMITE
+════════════════════════════════════════════════════ -->
+<div class="block" id="org-limit" style="--c:var(--limit)">
+  <div class="block-hdr" onclick="tog2('limit')">
+    <div class="bar" style="background:var(--limit)"></div>
+    <div class="bhi"><div class="bh-name">Organisation Limite</div><div class="bh-q">« Où sont les limites de ma puissance ? Jusqu'où va mon pouvoir ? »</div></div>
+    <div class="badges"><span class="badge" style="color:var(--limit);border-color:var(--limit)">Goldman</span><span class="badge" style="color:var(--limit);border-color:var(--limit)">Young</span></div>
+    <div class="chev">▾</div>
+  </div>
+  <div class="body">
+    <div class="tabs">
+      <div class="tab on" onclick="swTab(this,'lc')">🔍 Clinique</div>
+      <div class="tab" onclick="swTab(this,'lg')">🧠 Goldman</div>
+      <div class="tab" onclick="swTab(this,'ly')">🧩 Young</div>
+      <div class="tab" onclick="swTab(this,'le')">🔬 Étiologie</div>
+      <div class="tab" onclick="swTab(this,'lguid')">🛠 Guidance</div>
+    </div>
+
+    <div class="pane on" id="lc">
+      <div class="slbl">Signes observables en cabinet, Goldman</div>
+      <div class="g2" style="margin-bottom:12px">
+        <div class="icard"><span class="ico">🚫</span>Irrévérencieux, ne salue pas, parents qui excusent plutôt que de sommer</div>
+        <div class="icard"><span class="ico">💥</span>Jette des jouets, coupe la parole, gros mots, éructe, se plaint d'avoir faim</div>
+        <div class="icard"><span class="ico">🔍</span>Se love sous chaise/angle/tapis/rideaux : quête de contenance corporelle</div>
+        <div class="icard"><span class="ico">🎨</span>Dessins : indifférenciation des générations (même taille), insistance sur les contours, arcs-en-ciel enchevêtrés, évocations "peau, sol, ciel, barrières, frontières"</div>
+        <div class="icard"><span class="ico">😱</span>Peur insectes, sonnette, aspirateur, monstres sous le lit, cauchemars récurrents, insécurité paradoxale</div>
+        <div class="icard"><span class="ico">🦕</span>Passion anxieuse pour dinosaures, mythologie, planètes, mort, vie après la mort</div>
+        <div class="icard"><span class="ico">🤐</span>Mutique en classe, désinhibé à la maison (anticipation du rejet social)</div>
+        <div class="icard"><span class="ico">💧</span>Symptômes autour de la propreté : encoprésie, énurésie, constipation, rituels avec la couche</div>
+        <div class="icard"><span class="ico">🧠</span>Excitation pulsionnelle infiltre la pensée : dispersion, agitation, bavardages, malgré compétences cognitives parfois très élevées</div>
+        <div class="icard"><span class="ico">📖</span>Joue seul dans la cour, se replie dans les livres, pas décalage QI mais crainte de l'émergence pulsionnelle</div>
+      </div>
+      <div class="hbox">
+        <h4>Logique clinique fondamentale (Goldman)</h4>
+        <p style="font-size:13px;color:var(--text);line-height:1.7;margin-top:4px">« Si personne n'est plus fort que moi à la maison... qui me protège des dangers du monde ? » La simple présence parentale ne suffit pas à rassurer l'enfant. L'insécurité paradoxale s'explique ainsi.</p>
+      </div>
+      <div class="alert" style="margin-top:8px">
+        ⚠️ <strong>Retentissements en cascade (Goldman)</strong><br>
+        • <strong>Sur le narcissisme</strong> : raillé quotidiennement depuis la crèche par adultes et pairs → image de soi dévastée<br>
+        • <strong>Sur la position dépressive</strong> : parents qui crient le privent de bons liens nourrissants → carences affectives secondaires<br>
+        • <strong>Sur l'Œdipe</strong> : fantasmes non refoulés → envahissement cru → procédés rigides tyranniques internes compensatoires
+      </div>
+      <div class="cle">🌿 Clé : la limite rassure plus qu'elle ne frustre. La contenance répare la rupture relationnelle.</div>
+    </div>
+
+    <div class="pane" id="lg">
+      <div class="mblock" style="border-color:var(--limit)">
+        <div class="mt" style="color:var(--limit)">Lecture psychanalytique, Goldman</div>
+        <ul class="ml">
+          <li>Défaillance de la <strong>fonction tierce</strong> (interdit structurant)</li>
+          <li>Excitation pulsionnelle non contenue</li>
+          <li>Défaut d'intériorisation des limites</li>
+          <li><strong>La sanction seule peut être vécue comme rejet</strong></li>
+          <li><strong>La limite structure. La contenance répare.</strong></li>
+          <li>L'interdit n'est pas un abandon, l'enfant doit faire cette expérience</li>
+        </ul>
+      </div>
+      <div class="hbox">
+        <h4>NB Goldman, La problématique limite émerge le plus souvent SEULE</h4>
+        <p style="font-size:13px;color:var(--text);line-height:1.7;margin-top:4px">Certains enfants choyés présentent un socle identitaire solide, une position dépressive parfaitement élaborée, un bon narcissisme, et des préoccupations limites isolées dues à une difficulté parentale à "durcir le ton". La limite peut AUSSI générer des atteintes secondaires sur le narcissisme, la position dépressive et l'Œdipe avec le temps.</p>
+      </div>
+    </div>
+
+    <div class="pane" id="ly">
+      <div class="mblock" style="border-color:#b91c5c">
+        <div class="mt" style="color:#871540">Thérapie des Schémas, Young</div>
+        <ul class="ml">
+          <li>Schéma de <strong>limites insuffisantes</strong></li>
+          <li>Mode <strong>enfant impulsif</strong> dominant</li>
+          <li>Faible tolérance à la frustration</li>
+          <li>Si on valide sans limite → l'impulsivité gagne</li>
+          <li>Si on ne valide pas → la limite est vécue comme attaque</li>
+          <li><strong>Valider l'état interne. Encadrer le comportement.</strong></li>
+          <li>L'enfant limite reçoit beaucoup d'attention sur ses débordements, peu sur ses régulations</li>
+        </ul>
+      </div>
+      <div class="hbox">
+        <h4>Formule Young fondamentale (en une phrase)</h4>
+        <p style="font-size:17px;font-style:italic;color:var(--white);margin-top:6px">"Je vois que tu es très en colère. [Pause] Et tu ne frappes pas."</p>
+        <p style="font-size:13px;color:var(--dim);margin-top:4px">Ton calme. Pas d'ironie. Pas d'explication longue. La limite est courte, claire, non négociable.</p>
+      </div>
+    </div>
+
+    <div class="pane" id="le">
+      <div class="slbl">Étiologie selon Goldman, Origine de la fixation limite</div>
+      <div class="etio-item" style="border-color:var(--limit)">
+        <strong>La majorité des parents ignore simplement comment contenir (Goldman)</strong>
+        Une immense majorité des parents dont l'enfant consulte pour une problématique limite ignore tout simplement comment contenir la pulsionnalité au quotidien. Le dysfonctionnement est moins fondé sur une pathologie parentale que sur un défaut d'information.
+      </div>
+      <div class="etio-item" style="border-color:var(--limit)">
+        <strong>Les parents sont eux-mêmes mal limités</strong>
+        Leurs propres débordements pulsionnels sont constants. Ils n'ont jamais été eux-mêmes intimidés par aucun ordre parental. Les interactions évoquent une étonnante marée pulsionnelle sans distinction générationnelle.
+      </div>
+      <div class="etio-item" style="border-color:var(--limit)">
+        <strong>Un parent brimé par un parent tyrannique</strong>
+        Il associe simple autorité et abus de pouvoir, refuse d'intervenir de façon répressive. Il arrive que ces parents ne puissent jamais devenir répressifs (malgré la conviction intellectuelle), mais aussi qu'ils interdisent à l'autre parent de le faire.
+      </div>
+      <div class="vignette">
+        <strong>Vignette Goldman, Mère bloquant le père</strong>
+        Mère d'un adolescent de 20 ans aux symptômes transgressifs persistants, engluée dans sa symptomatologie, le grondait et le menaçait en retour. Quand on évoque les interventions paternelles pour court-circuiter les affronts, elle bondit : "démesurées, trop intenses et trop froides". En réalité : son propre passé traumatique auprès d'un père maltraitant lui faisait confondre fermeté éducative normative et abus.
+      </div>
+      <div class="etio-item" style="border-color:var(--limit)">
+        <strong>Instrumentalisation du droit d'autorité du père</strong>
+        Mères empêchant leurs maris d'intervenir (sous prétextes éducatifs, critiques du ton, de la légitimité) pour, en réalité, négocier leurs propres conflits pulsionnels avec eux.
+      </div>
+
+      <div class="slbl" style="margin-top:16px">Apports complémentaires, regards convergents sur la fixation limite</div>
+
+      <div class="etio-item" style="border-color:var(--limit)">
+        <strong>R. Tremblay (Prévenir la violence dès la petite enfance, Odile Jacob)</strong>
+        Thèse renversante : l'agressivité physique <em>culmine entre 2 et 4 ans</em> dans le développement normal. La question clinique n'est donc pas pourquoi cet enfant est agressif, mais pourquoi il n'a pas <em>désappris</em> à l'être. Le défaut de socialisation des pulsions agressives à cet âge clé (médiatisation par les pairs, étayage parental, gestion des frustrations) prédit l'agressivité chronique ultérieure. Cela ré-oriente le regard : repérer les <strong>apprentissages d'auto-régulation manquants</strong> plutôt que pathologiser un trait.
+      </div>
+
+      <div class="etio-item" style="border-color:var(--limit)">
+        <strong>N. Guédeney, attachement désorganisé et conduites contrôlantes</strong>
+        Certains enfants au profil « limite » présentent en réalité un attachement <em>désorganisé</em> (catégorie D), avec développement vers 4, 6 ans de <strong>conduites contrôlantes</strong> envers l'adulte (versant coercitif : ordres, menaces ; ou versant inversé : prise en charge parentifiée de l'adulte). L'agir tyrannique vise alors moins à transgresser qu'à <em>réguler une figure d'attachement vécue comme imprévisible ou effrayante</em>. Implique de repérer les inconsistances et les vécus traumatiques dans l'histoire d'attachement.
+      </div>
+
+      <div class="etio-item" style="border-color:var(--limit)">
+        <strong>M. Berger, traumatismes précoces et paralysie de la pensée</strong>
+        Dans <em>Voulons-nous des enfants barbares ?</em> (Dunod, 2008) et <em>L'échec de la protection de l'enfance</em>, Berger décrit des enfants chez qui les traumatismes précoces (violences conjugales, ruptures multiples, séparations mal accompagnées) ont produit une <strong>paralysie de la pensée</strong>, des troubles du schéma corporel, une organisation pulsionnelle non symbolisée. La psychanalyse classique en cabinet est souvent insuffisante : il faut <em>adapter le cadre</em> (durée, médiation, environnement éducatif, articulation institutionnelle).
+      </div>
+
+      <div class="etio-item" style="border-color:var(--limit)">
+        <strong>A. Ciccone, le « lien tyrannique »</strong>
+        Ciccone (Lyon 2) distingue <strong>destructivité</strong> (vise à anéantir l'objet) et <strong>agressivité</strong> (vise à transformer la relation). Quand l'enfant impose un lien tyrannique au parent (et plus tard à l'enseignant, au psy), il met en scène une dépendance niée et un effort désespéré de maîtrise. Le repérage du contre-transfert institutionnel (rejet, fuite, agir réactionnel des adultes) est essentiel : l'adulte épuisé devient lui-même tyrannisé puis tyrannique. Voir aussi <em>Violences dans la parentalité</em> (dir. Ciccone, Dunod, 2016).
+      </div>
+
+      <div class="hbox">
+        <h4>Repère intégratif</h4>
+        <p style="font-size:13px;color:var(--text);line-height:1.7;margin-top:4px">Devant un profil limite résistant, croiser les trois lectures : <strong>Goldman</strong> (défaut de contenance, fonction tierce défaillante), <strong>Tremblay</strong> (auto-régulation manquante), <strong>Guédeney</strong> (attachement désorganisé et conduites contrôlantes). Si Berger ou Ciccone deviennent pertinents → voir le bloc « Profils résistants ».</p>
+      </div>
+    </div>
+
+    <div class="pane" id="lguid">
+      <div class="two-col">
+        <div>
+          <div class="slbl">Goldman</div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Limites claires, fermes, constantes</span></div>
+            <ul class="cl"><li>Une règle dite = règle tenue</li><li>Pas d'argumentation interminable</li><li>"Parce que c'est la règle."</li><li>Trop expliquer nourrit la lutte de pouvoir</li></ul>
+            <div class="ic">🌿 Une clôture droite, pas une haie trouée. On ne débat pas avec un incendie, on l'éteint.</div>
+          </div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Contenance émotionnelle après sanction</span></div>
+            <ul class="cl"><li>Appliquer la sanction calmement, sans humiliation</li><li>Revenir vers l'enfant après la conséquence</li><li>"La règle reste la règle. Et je suis toujours là."</li><li>Ne pas reparler de la faute en boucle</li><li>Ne pas laisser planer un climat froid</li></ul>
+            <div class="ic">🌿 On ferme la porte à la tempête, pas à l'enfant. On reste à l'intérieur avec lui.</div>
+          </div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Exclusion temporaire structurante</span></div>
+            <ul class="cl"><li>Chambre fermée brièvement (non humiliante)</li><li>Retour chaleureux ensuite</li></ul>
+          </div>
+        </div>
+        <div>
+          <div class="slbl">Young</div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Discipline empathique</span></div>
+            <ul class="cl"><li>"Je vois que tu es très en colère." [Pause] "Et tu ne frappes pas."</li><li>Ton calme. Pas d'ironie. Pas d'explication longue.</li><li>La limite est courte, claire, non négociable.</li></ul>
+            <div class="ic">🌿 Une main douce qui tient fermement. Une main sur l'épaule, l'autre qui tient la barrière.</div>
+          </div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Renforcer les comportements adaptés</span></div>
+            <ul class="cl"><li>"Tu t'es arrêté quand je t'ai parlé." ✓</li><li>"Tu as respiré au lieu de taper." ✓</li><li>"Tu as accepté la règle." ✓</li><li>Compliment spécifique, court, sincère, pas global</li><li>Répéter souvent les micro-comportements adaptés</li></ul>
+            <div class="ic">🌿 Si on n'arrose que les mauvaises herbes, elles poussent. Arroser aussi les fleurs.</div>
+          </div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Cohérence parentale</span></div>
+            <ul class="cl"><li>Même réponse à la même transgression</li><li>Deux adultes = un seul message</li></ul>
+          </div>
+        </div>
+      </div>
+      <div class="cle">🎯 Objectif : internalisation progressive du tiers symbolique + développement du mode adulte sain.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     4. NARCISSIQUE
+════════════════════════════════════════════════════ -->
+<div class="block" id="org-narc" style="--c:var(--narc)">
+  <div class="block-hdr" onclick="tog2('narc')">
+    <div class="bar" style="background:var(--narc)"></div>
+    <div class="bhi"><div class="bh-name">Organisation Narcissique</div><div class="bh-q">« Ai-je de la valeur ? »</div></div>
+    <div class="badges"><span class="badge" style="color:var(--narc);border-color:var(--narc)">Goldman</span><span class="badge" style="color:var(--narc);border-color:var(--narc)">Young</span></div>
+    <div class="chev">▾</div>
+  </div>
+  <div class="body">
+    <div class="tabs">
+      <div class="tab on" onclick="swTab(this,'nac')">🔍 Clinique</div>
+      <div class="tab" onclick="swTab(this,'nag')">🧠 Goldman</div>
+      <div class="tab" onclick="swTab(this,'nay')">🧩 Young</div>
+      <div class="tab" onclick="swTab(this,'nae')">🔬 Étiologie</div>
+      <div class="tab" onclick="swTab(this,'naguid')">🛠 Guidance</div>
+    </div>
+    <div class="pane on" id="nac">
+      <div class="slbl">Les deux faces cliniques (Goldman)</div>
+      <div class="two-col" style="margin-bottom:12px">
+        <div class="hbox">
+          <h4>🔻 Face inhibée</h4>
+          <ul class="cl" style="margin-top:5px"><li>Se dévalorise, renonce à toute compétition</li><li>Refuse de rendre des copies en classe</li><li>Inhibition des productions écrites</li><li>Peur d'être blessé en cas d'échec</li></ul>
+        </div>
+        <div class="hbox">
+          <h4>🔺 Face grandiose (défensive)</h4>
+          <ul class="cl" style="margin-top:5px"><li>Grande prétention, très imbu de lui-même, maniéré</li><li>Aspire à argent, succès, célébrités, beauté, mode</li><li>Dénigre les autres pour se valoriser</li><li>Arrogance, mépris, besoin d'être "au-dessus"</li></ul>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="icard"><span class="ico">⚖️</span>Oscillation grandiosité ↔ effondrement</div>
+        <div class="icard"><span class="ico">💔</span>Critique excessive de soi / honte cachée</div>
+        <div class="icard"><span class="ico">🏅</span>Besoin intense de validation externe constante</div>
+        <div class="icard"><span class="ico">😤</span>Amour conditionnel intériorisé (lié à la réussite)</div>
+      </div>
+      <div class="cle">🌿 Clé : nourrir la solidité, pas la façade. Corriger le miroir, ni déformant, ni artificiel.</div>
+    </div>
+    <div class="pane" id="nag">
+      <div class="mblock" style="border-color:var(--narc)">
+        <div class="mt" style="color:var(--narc)">Lecture psychanalytique, Goldman</div>
+        <ul class="ml">
+          <li>L'enfant investi tendrement développe naturellement une belle confiance ("je suis aimable puisque mes parents m'aiment")</li>
+          <li>Si l'estime de soi est malmenée → tendance à se dévaloriser ou à afficher une grande prétention (démarche défensive illusoire de restauration narcissique)</li>
+          <li>Winnicott (1957) : le regard parental constitue "le premier miroir de soi"</li>
+          <li>Les critiques adressées à l'autre parent blessent aussi l'enfant ("ton père est pervers" / "ta mère est folle")</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pane" id="nay">
+      <div class="mblock" style="border-color:#a67700">
+        <div class="mt" style="color:#7a5800">Thérapie des Schémas, Young</div>
+        <ul class="ml">
+          <li>Schéma de <strong>honte / défectuosité</strong></li>
+          <li>Schéma d'<strong>exigences élevées</strong></li>
+          <li>Surcompensation narcissique (arrogance, mépris)</li>
+          <li>Valider l'émotion réelle, pas amplifier la façade grandiose</li>
+          <li>Si aucune limite sur la grandiosité → défense envahissante</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pane" id="nae">
+      <div class="slbl">Étiologie selon Goldman, Origine des fixations narcissiques</div>
+      <div class="etio-item" style="border-color:var(--narc)">
+        <strong>La carence narcissique parentale ou la maltraitance narcissique</strong>
+        L'enfant ne perçoit rien de gratifiant dans le regard ou le discours des adultes qui s'occupent de lui. Les critiques peuvent être directes ("tu es un incapable") ou indirectes (critiquer l'autre parent). Les parents sont constamment "sur haut-parleur" : tout ce qu'ils renvoient à l'enfant de lui-même impacte structurellement son estime de soi.
+      </div>
+      <div class="etio-item" style="border-color:var(--narc)">
+        <strong>L'absence parentale blessante</strong>
+        L'enfant caché, illégitime, non reconnu, abandonné, peut imaginer que sa valeur est responsable de ce départ.
+      </div>
+      <div class="vignette">
+        <strong>Vignette Goldman, Absence et mépris</strong>
+        Garçon de 10 ans consultant pour isolement social et tendance au mépris (faisait rater les anniversaires surprises de ses camarades). Fruit d'une union adultérine, son père refusait de le présenter à sa famille officielle malgré son récent veuvage → déni de son existence terriblement blessant.
+      </div>
+      <div class="etio-item" style="border-color:var(--narc)">
+        <strong>L'idéalisation parentale (paradoxalement blessante)</strong>
+        L'enfant surinvesti (enfant "miracle" après stérilité) éprouve un décalage blessant entre le regard familial posé sur lui et la relative indifférence qu'il suscite chez ses pairs à la maternelle. Il pressent l'imposture du regard parental et s'en détourne, grandissant sans réel agent constructeur fiable de son narcissisme.
+      </div>
+      <div class="vignette">
+        <strong>Vignette clinique, Romain Gary et sa mère Mina (Goldman)</strong>
+        Mina, actrice déchue, consacra les vingt dernières années de son existence à construire le destin grandiose de son fils. Gary écrit : "Un sentiment étrange de gêne s'empara de moi : j'eus soudain la sensation d'être quelqu'un d'autre.", Illustration du doute infantile conférant au sentiment d'imposture.
+      </div>
+
+      <div class="slbl" style="margin-top:16px">Apports complémentaires, la violence comme défense narcissique</div>
+
+      <div class="etio-item" style="border-color:var(--narc)">
+        <strong>Ph. Jeanmet, hypothèse fondamentale (cf. Malchair 2000)</strong>
+        « La violence est une réponse à une attaque du narcissisme et une défense contre ce qui est perçu comme une menace sur l'identité. C'est ce qui apparaît comme la condition essentielle de l'émergence de la violence. » Cette lecture est centrale pour comprendre les conduites violentes chez les enfants à fragilité narcissique : la moindre critique, l'humiliation publique, le rejet par les pairs peuvent déclencher des passages à l'acte qui visent à <em>restaurer le narcissisme</em> plutôt qu'à transgresser.
+      </div>
+
+      <div class="etio-item" style="border-color:var(--narc)">
+        <strong>F. Marty, l'éruption de destructivité</strong>
+        « Dans le déclenchement de la violence, il y a éruption d'une destructivité pure qui a comme finalité essentielle la désubjectivation d'autrui et son anéantissement en tant que différent du sujet, et porteur d'un désir propre. » L'enfant à fragilité narcissique vit toute altérité comme une attaque ; la violence vise à effacer la différence menaçante.
+      </div>
+
+      <div class="etio-item" style="border-color:var(--narc)">
+        <strong>Ph. Gutton, le soutien narcissique parental défaillant</strong>
+        Quand le parent ne soutient pas le narcissisme de l'enfant et de l'adolescent (par fragilité propre, dépression, ou rivalité), le jeune se retrouve démuni face aux attaques narcissiques quotidiennes. La violence agie devient alors « sauvegarde narcissique » faute de soutien intériorisé. Travailler le narcissisme parental est souvent une condition de soin.
+      </div>
+
+      <div class="alert">
+        ⚠️ <strong>Différentiel clinique critique</strong><br>
+        Devant un enfant qui s'effondre puis devient violent à une critique anodine : ne pas conclure d'emblée à un « manque de limite » (limite). C'est souvent une <strong>attaque narcissique</strong> non métabolisée. La réponse répressive aggrave ; la réponse narcissisante (validation, restauration de la valeur, désamorçage de la menace) apaise.
+      </div>
+    </div>
+    <div class="pane" id="naguid">
+      <div class="two-col">
+        <div>
+          <div class="slbl">Goldman</div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Différencier performance et amour</span></div>
+            <ul class="cl"><li>"Je t'aime pour qui tu es, pas pour ce que tu fais."</li><li>"Tu as raté cet exercice. Ça ne dit rien de ta valeur."</li><li>Éviter les comparaisons avec fratrie ou autres enfants</li><li>Manifester intérêt hors moments de performance</li></ul>
+            <div class="ic">🌿 L'amour ne fonctionne pas comme un baromètre. C'est un sol, pas une récompense.</div>
+          </div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Valorisation authentique</span></div>
+            <ul class="cl"><li>Compliment spécifique, pas global</li><li>Éviter "tu es le meilleur"</li><li>Autoriser l'imperfection explicitement</li><li>Réduire les exigences narcissiques parentales</li></ul>
+            <div class="ic">🌿 Nourrir les racines, pas gonfler le ballon. Sortir du podium, entrer dans la relation.</div>
+          </div>
+        </div>
+        <div>
+          <div class="slbl">Young</div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Validation sans survalorisation</span></div>
+            <ul class="cl"><li>Si l'enfant se vante : "Tu es fier de toi." (factuel)</li><li>Si l'enfant échoue : "Je vois que c'est dur." (sans "mais tu es incroyable")</li><li>"Tu as travaillé longtemps." / "Tu as persévéré."</li></ul>
+            <div class="ic">🌿 Ajuster le miroir, ni déformant qui rapetisse, ni miroir qui agrandit artificiellement. Un miroir net.</div>
+          </div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Limites sur la grandiosité</span></div>
+            <ul class="cl"><li>"Tu peux être fier de toi sans rabaisser les autres."</li><li>Refuser les privilèges liés au statut auto-attribué</li><li>Maintenir les mêmes exigences que pour la fratrie</li></ul>
+            <div class="ic">🌿 Un ballon trop gonflé éclate. La limite agit comme une valve, elle empêche l'explosion.</div>
+          </div>
+        </div>
+      </div>
+      <div class="cle">🎯 Objectif : consolidation d'une estime de soi stable, ni gonflée ni effondrée.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     5. PERVERS
+════════════════════════════════════════════════════ -->
+<div class="block" id="org-perv" style="--c:var(--perv)">
+  <div class="block-hdr" onclick="tog2('perv')">
+    <div class="bar" style="background:var(--perv)"></div>
+    <div class="bhi"><div class="bh-name">Fonctionnement Pervers</div><div class="bh-q">« Qui contrôle les frontières ? »</div></div>
+    <div class="badges"><span class="badge" style="color:var(--perv);border-color:var(--perv)">Goldman</span><span class="badge" style="color:var(--perv);border-color:var(--perv)">Young</span></div>
+    <div class="chev">▾</div>
+  </div>
+  <div class="body">
+    <div class="tabs">
+      <div class="tab on" onclick="swTab(this,'pc')">🔍 Clinique</div>
+      <div class="tab" onclick="swTab(this,'pg')">🧠 Goldman</div>
+      <div class="tab" onclick="swTab(this,'py')">🧩 Young</div>
+      <div class="tab" onclick="swTab(this,'pe')">🔬 Étiologie</div>
+      <div class="tab" onclick="swTab(this,'pguid')">🛠 Guidance</div>
+    </div>
+    <div class="pane on" id="pc">
+      <div class="g2" style="margin-bottom:12px">
+        <div class="icard"><span class="ico">🔀</span>Séduit, manipule, brouille les places générationnelles</div>
+        <div class="icard"><span class="ico">⚡</span>Rivalité excessive avec parent du même sexe</div>
+        <div class="icard"><span class="ico">🎭</span>Emprise, dénigre l'autre, mise en concurrence des adultes</div>
+        <div class="icard"><span class="ico">🔥</span>L'affect est agi plutôt que pensé, mentalisation faible</div>
+        <div class="icard"><span class="ico">⚠️</span>Confusion générationnelle nourrit l'excitation et l'emprise</div>
+        <div class="icard"><span class="ico">🎯</span>Tentatives de domination ou séduction de l'adulte</div>
+      </div>
+      <div class="cle">🌿 Clé : remettre les frontières avant d'interpréter. Stabiliser d'abord, analyser ensuite.</div>
+    </div>
+    <div class="pane" id="pg">
+      <div class="mblock" style="border-color:var(--perv)">
+        <div class="mt" style="color:var(--perv)">Lecture psychanalytique, Goldman</div>
+        <ul class="ml">
+          <li>Resté maintenu dans des préoccupations limites, dépressives, narcissiques, n'a pu se confronter ni à l'angoisse de castration ni à l'élaboration de son complexe d'Œdipe</li>
+          <li>Excitation incestuelle, l'ambiguïté alimente le trouble</li>
+          <li>Brouillage des frontières générationnelles</li>
+          <li>L'enfant ne doit ni rivaliser, ni consoler, ni séduire l'adulte</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pane" id="py">
+      <div class="mblock" style="border-color:#a92020">
+        <div class="mt" style="color:#7a1818">Thérapie des Schémas, Young</div>
+        <ul class="ml">
+          <li>Schéma d'<strong>enchevêtrement</strong></li>
+          <li>Schéma d'<strong>abus / méfiance</strong></li>
+          <li>Mode enfant en colère / surcompensateur dominateur</li>
+          <li>L'adulte doit stopper l'escalade relationnelle</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pane" id="pe">
+      <div class="slbl">Étiologie selon Goldman</div>
+      <div class="etio-item" style="border-color:var(--perv)">
+        <strong>Atteintes incestuelles réelles ou symboliques</strong>
+        L'enfant enseveli sous des atteintes incestuelles maternelles ressent une sensation de souillure, le sentiment criminel d'éprouver à son tour du désir (alors qu'une traversée œdipienne classique aurait dû le lui permettre). Il se disqualifie, a honte. Il se punira après l'accès à la génitalité en colorant de destructivité ses désirs. Le pervers, dans son aspiration à détruire le désir de l'autre, illustre la façon dont il a souhaité anéantir le désir incestueux de sa mère à son égard.
+      </div>
+      <div class="vignette">
+        <strong>Vignette Goldman, Enchevêtrement incestuel</strong>
+        Enfant de 11 ans très passif, isolé sur le plan relationnel ("je n'ai jamais eu d'ami"), très susceptible, grandes difficultés scolaires depuis le CP. Sa mère, au cours de l'entretien préliminaire (en présence du père), lui adressait constamment et de façon assez surréaliste de tendres œillades et baisers volants. Le bilan révèle un cheminement identificatoire masculin impossible, une mise en passivité très violente du masculin par les figures féminines-maternelles, et des fantasmes sadiques extrêmement crus.
+      </div>
+
+      <div class="slbl" style="margin-top:16px">Apports complémentaires, clivage et destructivité</div>
+
+      <div class="etio-item" style="border-color:var(--perv)">
+        <strong>Ph. Jeanmet, le clivage du Moi</strong>
+        « Les troubles graves du comportement de type délinquant, toxicomaniaque, anorectique, certaines dysmorphophobies isolent tout un courant de la vie psychique et libidinale qui trouve refuge dans le symptôme. Il n'y a pas tant refoulement que clivage du Moi qui, à côté d'une apparence plus ou moins névrotique, en fait peu investie, maintient une relation d'emprise clivée, déréelle et totalement close sur elle-même. » C'est exactement le mécanisme du fonctionnement pervers : <em>double face cohérente, sans contradiction interne ressentie</em>.
+      </div>
+
+      <div class="etio-item" style="border-color:var(--perv)">
+        <strong>Cl. Balier, l'acte de toute-puissance</strong>
+        « Seul reste l'acte de toute-puissance qui mène le jeune hors fonctionnement mental, dans des comportements éventuellement délictueux, tels les abus sur des enfants. L'enfant devient un objet que l'adolescent peut soumettre : il inverse la relation infantile (la sienne) et possède la maîtrise. » Repère pour les pré-adolescents agresseurs sur plus jeunes : <em>retournement actif de la passivité subie</em>.
+      </div>
+
+      <div class="etio-item" style="border-color:var(--perv)">
+        <strong>A. Ciccone, destructivité vs agressivité</strong>
+        Ciccone distingue rigoureusement la <strong>destructivité</strong> (finalité : anéantir l'objet et son désir propre, désubjectiver l'autre) de l'<strong>agressivité</strong> (finalité : transformer la relation, faire reconnaître). Le fonctionnement pervers se caractérise par la destructivité froide ; la transgression limite, par l'agressivité chaude. Cette distinction oriente la réponse thérapeutique et institutionnelle.
+      </div>
+
+      <div class="alert">
+        ⚠️ <strong>Vigilance contre-transférentielle (Ciccone)</strong><br>
+        Le fonctionnement pervers mobilise un contre-transfert institutionnel particulier : fascination, sidération, agir réactionnel, clivage des équipes. Le repérage du clivage <em>dans l'équipe</em> (certains défendent l'enfant, d'autres le rejettent) est souvent le meilleur indice d'un fonctionnement pervers en cours. Voir <em>La violence dans le soin</em> (Ciccone, Dunod).
+      </div>
+    </div>
+    <div class="pane" id="pguid">
+      <div class="two-col">
+        <div>
+          <div class="slbl">Goldman</div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Clarification générationnelle stricte</span></div>
+            <ul class="cl"><li>Bannir surnoms conjugaux ("mon amoureux"...)</li><li>Éviter confidences affectives inadaptées</li><li>Ne pas partager les conflits conjugaux</li><li>Refuser gestes ou postures ambiguës</li><li>Ne pas rire des provocations séductrices</li></ul>
+            <div class="ic">🌿 On retire les rideaux transparents. La frontière devient opaque, nette.</div>
+          </div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Réaffirmation des places</span></div>
+            <ul class="cl"><li>"Je suis l'adulte. Tu es l'enfant."</li><li>Décisions importantes hors de la scène enfantine</li><li>Refuser la mise en concurrence avec le conjoint</li><li>Ne pas demander à l'enfant de "choisir un camp"</li></ul>
+            <div class="ic">🌿 On remet les chaises autour de la table. Chacun à la sienne.</div>
+          </div>
+        </div>
+        <div>
+          <div class="slbl">Young</div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Protection contre l'emprise</span></div>
+            <ul class="cl"><li>Stopper immédiatement les tentatives de manipulation</li><li>Ne pas entrer dans le jeu de pouvoir</li><li>Refuser les ultimatums émotionnels</li><li>Rester factuel, non provocable</li></ul>
+            <div class="ic">🌿 Ne pas entrer dans l'arène. Si personne ne joue, le duel s'éteint.</div>
+          </div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Mentalisation des affects</span></div>
+            <ul class="cl"><li>"Quand tu provoques, je me demande si tu es jaloux."</li><li>Aider à différencier excitation et émotion</li><li>"Qu'est-ce que tu voulais obtenir ?"</li></ul>
+            <div class="ic">🌿 On met des mots là où il n'y avait que du feu.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     6. PSYCHOTIQUE
+════════════════════════════════════════════════════ -->
+<div class="block" id="org-psych" style="--c:var(--psych)">
+  <div class="block-hdr" onclick="tog2('psych')">
+    <div class="bar" style="background:var(--psych)"></div>
+    <div class="bhi"><div class="bh-name">Organisation Psychotique / Identitaire</div><div class="bh-q">« Qui suis-je ? »</div></div>
+    <div class="badges"><span class="badge" style="color:var(--psych);border-color:var(--psych)">Goldman</span><span class="badge" style="color:var(--psych);border-color:var(--psych)">Young</span></div>
+    <div class="chev">▾</div>
+  </div>
+  <div class="body">
+    <div class="tabs">
+      <div class="tab on" onclick="swTab(this,'qc')">🔍 Clinique</div>
+      <div class="tab" onclick="swTab(this,'qg')">🧠 Goldman</div>
+      <div class="tab" onclick="swTab(this,'qy')">🧩 Young</div>
+      <div class="tab" onclick="swTab(this,'qe')">🔬 Étiologie</div>
+      <div class="tab" onclick="swTab(this,'qguid')">🛠 Guidance</div>
+    </div>
+    <div class="pane on" id="qc">
+      <div class="slbl">Deux présentations cliniques (Goldman)</div>
+      <div class="two-col" style="margin-bottom:12px">
+        <div class="hbox">
+          <h4>🔴 Éclatement visible</h4>
+          <ul class="cl" style="margin-top:5px">
+            <li>Contact dispersé, sans accordage par le regard ni les réponses</li>
+            <li>Coupe la parole pour dire autre chose</li>
+            <li>Sourire sans justification apparente</li>
+            <li>Destructivité : cris, jets, coups de pieds aux parents, déchirement des feuilles</li>
+            <li>Communication régressée (articulation, contenus)</li>
+            <li>Dessins : graphisme et discours déstructurés, processus primaires prévalents (Cognet)</li>
+          </ul>
+        </div>
+        <div class="hbox">
+          <h4>🟡 Faux-self convaincant (Goldman)</h4>
+          <ul class="cl" style="margin-top:5px">
+            <li>Adaptation apparente jusqu'à un point de rupture</li>
+            <li>Faille révélée par acquisitions scolaires ou malaise social montant face aux pairs</li>
+            <li>"L'imposture du Moi en réalité précaire"</li>
+            <li>Peut duper le psychologue dans un premier temps</li>
+            <li>Face aux planches de Rorschach, le socle identitaire n'a pas d'autre choix que de se révéler</li>
+          </ul>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="icard"><span class="ico">🌀</span>Désorganisation, fusion, confusion identitaire</div>
+        <div class="icard"><span class="ico">😶</span>Défaut majeur de symbolisation</div>
+        <div class="icard"><span class="ico">🏠</span>Angoisse d'ancrage dans la réalité (fixation 0-1 an)</div>
+        <div class="icard"><span class="ico">🔄</span>"Les productions donnent à voir une scène désorganisée, quelquefois incohérente dont les thématiques sont le plus souvent crues, agressives, angoissantes." (Cognet, 2011)</div>
+      </div>
+      <div class="cle">🌿 Clé : stabiliser avant toute élaboration. L'environnement devient la structure interne manquante.</div>
+    </div>
+    <div class="pane" id="qg">
+      <div class="mblock" style="border-color:var(--psych)">
+        <div class="mt" style="color:var(--psych)">Lecture psychanalytique, Goldman</div>
+        <ul class="ml">
+          <li>Fixation au premier stade (0-1 an), construction identitaire fragile</li>
+          <li>Problématique identitaire plus ou moins imposante : de l'éclatement majeur (psychoses, autismes graves) aux glissements identitaires ponctuels</li>
+          <li>L'imprévisibilité majore la désorganisation</li>
+          <li><strong>L'environnement devient la structure</strong></li>
+          <li>Le délire constitue une défense contre une réalité relationnelle primaire trop frustrante</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pane" id="qy">
+      <div class="mblock" style="border-color:#036672">
+        <div class="mt" style="color:#024954">Thérapie des Schémas, Young</div>
+        <ul class="ml">
+          <li>Mode enfant vulnérable <strong>extrême</strong></li>
+          <li>Déficit d'intégration du mode adulte</li>
+          <li>La sécurité doit être constante et explicite</li>
+          <li>La complexité peut désorganiser davantage</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pane" id="qe">
+      <div class="slbl">Étiologie selon Goldman, Origine de la problématique identitaire</div>
+      <div class="etio-item" style="border-color:var(--psych)">
+        <strong>Propositions relationnelles parentales pathologiques</strong>
+        Désaccordées aux besoins du bébé, n'ayant pu octroyer un espace propice au déploiement de sa subjectivité. Peuvent avoir eu lieu sur un mode symbiotique (fusion mère/enfant) ou colorées de frustration, ayant engendré souffrance, grande solitude, haine pour l'objet primaire incapable de secourir, repli sur lui-même, jusqu'au refuge hallucinatoire.
+      </div>
+      <div class="etio-item" style="border-color:var(--psych)">
+        <strong>Désaccordages relationnels massifs + événements traumatiques parentaux</strong>
+        Goldman : "Tous les psychologues pour enfants le savent bien : les désaccordages relationnels massifs impliqués derrière une psychose infantile trouvent toujours leur source dans de grandes souffrances infantiles des parents eux-mêmes, auxquelles se sont bien souvent surajoutés des événements traumatiques conjoncturels (exils subis, deuils inélaborés, etc.)."
+      </div>
+      <div class="vignette">
+        <strong>Vignette Goldman, Fusion maternelle</strong>
+        Mère antillaise qui avait quitté son île seule à 18 ans, fortement impactée par la séparation de ses parents lorsqu'elle était enfant, avait mis au monde deux bébés coup sur coup en arrivant en France avec un homme bien trop jeune, et avait, en aspirant à fusionner avec chacun d'eux dans une visée réparatrice bien personnelle, empêché toute subjectivité de se déployer → ses enfants avaient respectivement reçu les diagnostics d'autisme et de troubles envahissants du développement.
+      </div>
+      <div class="vignette">
+        <strong>Vignette Goldman, La faille insidieuse</strong>
+        Petit garçon psychotique de 3 ans qui ne cessait de faire physiquement violence à sa mère (jusqu'à se mettre en danger lui-même). Cette maman très douce (soignante) avait subi des violences dans son histoire infantile, mais suggérait une résilience rassurante. C'est au fil des séances et par les voies du transfert (qui s'est progressivement mué en haine irrationnelle à l'égard du thérapeute) que toute sa destructivité a pu se révéler.
+      </div>
+    </div>
+    <div class="pane" id="qguid">
+      <div class="two-col">
+        <div>
+          <div class="slbl">Goldman</div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Cadre très stable, Contenance maximale</span></div>
+            <ul class="cl"><li>Horaires fixes, routines identiques</li><li>Peu de changements imprévus</li><li>Limiter les stimulations sensorielles</li><li>Parler lentement, présence adulte stable et identifiable</li><li>Annoncer chaque transition. Expliquer avant d'agir.</li><li>Supports visuels si besoin</li></ul>
+            <div class="ic">🌿 Un sol en béton sous des pieds instables. Un rail posé droit permet au train de rester sur sa voie.</div>
+          </div>
+        </div>
+        <div>
+          <div class="slbl">Young</div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Sécurité répétée + Interventions simples</span></div>
+            <ul class="cl"><li>"Tu es en sécurité.", dire régulièrement</li><li>Être physiquement présent lors des pics d'angoisse</li><li>Ne pas contester frontalement les vécus anxieux</li><li>Consignes courtes, une idée à la fois</li><li>Pas de longues explications abstraites</li><li>Coordination parentale étroite</li></ul>
+            <div class="ic">🌿 Une ancre jetée encore et encore jusqu'à ce que le bateau cesse de dériver. Dans le brouillard, lumière stable et directionnelle.</div>
+          </div>
+        </div>
+      </div>
+      <div class="cle">🎯 Objectif : sécurité structurelle maximale, peu d'interprétation, beaucoup de stabilité.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     BLOC SPÉCIFIQUE : PROFILS RÉSISTANTS (Berger × Ciccone × Tremblay)
+════════════════════════════════════════════════════ -->
+<div class="block" id="org-resist" style="--c:var(--resist);margin-top:18px">
+  <div class="block-hdr" onclick="tog2('resist')">
+    <div class="bar" style="background:var(--resist)"></div>
+    <div class="bhi"><div class="bh-name">🛟 Profils résistants, triple croisement</div><div class="bh-q">« Quand les pistes habituelles n'amorcent pas de changement »</div></div>
+    <div class="badges"><span class="badge" style="color:var(--resist);border-color:var(--resist)">Berger</span><span class="badge" style="color:var(--resist);border-color:var(--resist)">Ciccone</span><span class="badge" style="color:var(--resist);border-color:var(--resist)">Tremblay</span></div>
+    <div class="chev">▾</div>
+  </div>
+  <div class="body">
+    <div class="tabs">
+      <div class="tab on" onclick="swTab(this,'rc')">🔍 Quand l'évoquer</div>
+      <div class="tab" onclick="swTab(this,'rberg')">🧠 Berger</div>
+      <div class="tab" onclick="swTab(this,'rcicc')">🌀 Ciccone</div>
+      <div class="tab" onclick="swTab(this,'rtrem')">📊 Tremblay</div>
+      <div class="tab" onclick="swTab(this,'rsynt')">🔗 Synthèse intégrative</div>
+    </div>
+
+    <div class="pane on" id="rc">
+      <div class="slbl">Indicateurs de résistance, mobiliser ce cadre quand :</div>
+      <div class="g2" style="margin-bottom:12px">
+        <div class="icard"><span class="ico">🔁</span>Six mois ou plus de suivi sans amorce de changement</div>
+        <div class="icard"><span class="ico">🏚️</span>Histoire de ruptures précoces, placements, exposition à la violence conjugale</div>
+        <div class="icard"><span class="ico">🧊</span>« Paralysie de la pensée » : enfant qui ne peut pas associer, sans laisser entrer la psyché de l'autre</div>
+        <div class="icard"><span class="ico">⛓️</span>Lien tyrannique imposé : épuisement des adultes, clivage des équipes</div>
+        <div class="icard"><span class="ico">💢</span>Destructivité froide, sans culpabilité après coup</div>
+        <div class="icard"><span class="ico">🌪️</span>Échec des guidances parentales successives malgré bonne volonté</div>
+        <div class="icard"><span class="ico">📉</span>Apprentissages d'auto-régulation jamais installés depuis la petite enfance</div>
+        <div class="icard"><span class="ico">🔥</span>Contre-transfert intense : envie de fuir, de rejeter, de céder</div>
+      </div>
+      <div class="hbox">
+        <h4>Logique du triple croisement</h4>
+        <p style="font-size:13px;color:var(--text);line-height:1.7;margin-top:4px">Chaque auteur éclaire un versant : <strong>Berger</strong> identifie les <em>traumatismes précoces</em> et propose une <em>adaptation du cadre</em> ; <strong>Ciccone</strong> repère le <em>lien tyrannique</em> et le <em>contre-transfert institutionnel</em> ; <strong>Tremblay</strong> nomme les <em>apprentissages d'auto-régulation manquants</em> et oriente vers des stratégies développementales. Le croisement permet de sortir des impasses des approches mono-théoriques.</p>
+      </div>
+      <div class="cle">🌿 Clé : avant de conclure à une « pathologie », interroger ce que la situation, l'environnement, le cadre n'ont pas permis de penser.</div>
+    </div>
+
+    <div class="pane" id="rberg">
+      <div class="mblock" style="border-color:var(--resist)">
+        <div class="mt" style="color:var(--resist)">M. Berger, traumatismes précoces et adaptation du cadre</div>
+        <ul class="ml">
+          <li>Repérer les <strong>traumatismes précoces non symbolisés</strong> : violences conjugales, ruptures multiples, hospitalisations, placements</li>
+          <li>Attention aux troubles du schéma corporel et aux <strong>vides de représentation</strong></li>
+          <li>« Paralysie de la pensée » : la psychanalyse classique en cabinet est souvent inefficace</li>
+          <li>Adapter le cadre : durée, médiations corporelles, articulation avec l'environnement éducatif</li>
+          <li>Travailler la <strong>chronologie traumatique</strong> (mise en récit lente, supports concrets)</li>
+          <li>Importance de la cohérence pluri-professionnelle (un seul discours, un seul cadre)</li>
+        </ul>
+      </div>
+      <div class="hbox">
+        <h4>Ouvrages-clés</h4>
+        <p style="font-size:13px;color:var(--text);line-height:1.7;margin-top:4px"><em>Voulons-nous des enfants barbares ?</em> (Dunod, 2008), <em>L'échec de la protection de l'enfance</em>, <em>L'enfant et la souffrance de la séparation</em>.</p>
+      </div>
+    </div>
+
+    <div class="pane" id="rcicc">
+      <div class="mblock" style="border-color:var(--resist)">
+        <div class="mt" style="color:var(--resist)">A. Ciccone, lien tyrannique et contre-transfert</div>
+        <ul class="ml">
+          <li>Distinguer <strong>destructivité</strong> (anéantir l'objet) et <strong>agressivité</strong> (transformer la relation)</li>
+          <li>Repérer le <strong>lien tyrannique</strong> : dépendance niée, maîtrise désespérée de l'adulte</li>
+          <li>Repérer le <strong>contre-transfert institutionnel</strong> : clivage d'équipe, agirs réactionnels, fascination, rejet</li>
+          <li>L'équipe qui se déchire <em>est</em> le symptôme : c'est ce qui doit être pensé en premier</li>
+          <li>Restaurer un dispositif de pensée commun avant toute intervention sur l'enfant</li>
+        </ul>
+      </div>
+      <div class="hbox">
+        <h4>Ouvrages-clés</h4>
+        <p style="font-size:13px;color:var(--text);line-height:1.7;margin-top:4px"><em>La violence dans le soin</em> (Dunod), <em>Violences dans la parentalité</em> (dir., Dunod, 2016).</p>
+      </div>
+    </div>
+
+    <div class="pane" id="rtrem">
+      <div class="mblock" style="border-color:var(--resist)">
+        <div class="mt" style="color:var(--resist)">R. Tremblay, le développement précoce de l'agressivité</div>
+        <ul class="ml">
+          <li>Données longitudinales : <strong>l'agressivité physique culmine entre 2 et 4 ans</strong> dans le développement normal</li>
+          <li>Question clinique inverse : pourquoi cet enfant n'a-t-il <em>pas désappris</em> à être agressif ?</li>
+          <li>Facteurs : pauvreté précoce, violences familiales, attachement perturbé, déficit d'occasions de socialisation, défaut de réponses parentales structurantes</li>
+          <li>Conséquences pratiques : <strong>la prévention efficace se fait dès la petite enfance</strong>, pas à l'âge scolaire</li>
+          <li>Outils : étayage des compétences parentales précoces, dispositifs périnatals, groupes de jeu structurés</li>
+        </ul>
+      </div>
+      <div class="hbox">
+        <h4>Ouvrage-clé</h4>
+        <p style="font-size:13px;color:var(--text);line-height:1.7;margin-top:4px"><em>Prévenir la violence dès la petite enfance</em> (Odile Jacob).</p>
+      </div>
+    </div>
+
+    <div class="pane" id="rsynt">
+      <div class="slbl">Articulation des trois lectures, pour un même enfant</div>
+      <table class="tv-table">
+        <thead><tr><th>Question</th><th>Lecture mobilisée</th><th>Action concrète</th></tr></thead>
+        <tbody>
+          <tr><td>Qu'est-ce qui n'a pas pu se symboliser dans l'histoire ?</td><td style="color:var(--resist)">Berger</td><td>Reconstruire la chronologie traumatique, mise en récit lente</td></tr>
+          <tr><td>Quel est l'effet de cet enfant sur les adultes qui l'entourent ?</td><td style="color:var(--resist)">Ciccone</td><td>Penser le contre-transfert d'équipe avant l'enfant</td></tr>
+          <tr><td>Quels apprentissages d'auto-régulation n'ont jamais été installés ?</td><td style="color:var(--resist)">Tremblay</td><td>Étayage développemental concret, dispositifs précoces</td></tr>
+          <tr><td>Le cadre proposé est-il adapté à ce profil ?</td><td style="color:var(--resist)">Berger</td><td>Élargir, articuler, ajouter des médiations</td></tr>
+          <tr><td>Y a-t-il un lien tyrannique en train de s'installer ?</td><td style="color:var(--resist)">Ciccone</td><td>Nommer, réintroduire la tiercéité, refuser le huis clos</td></tr>
+        </tbody>
+      </table>
+      <div class="alert" style="margin-top:12px">
+        ⚠️ Sortir l'enfant d'un parcours « résistant » suppose souvent un travail <em>en amont</em> de la rencontre clinique : pluridisciplinarité, supervision, articulation école/famille/soin. Le triple croisement est d'abord un cadre de pensée institutionnel.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     BLOC SPÉCIFIQUE : INTERVENTION EN MILIEU SCOLAIRE
+════════════════════════════════════════════════════ -->
+<div class="block" id="org-school" style="--c:var(--school);margin-top:18px">
+  <div class="block-hdr" onclick="tog2('school')">
+    <div class="bar" style="background:var(--school)"></div>
+    <div class="bhi"><div class="bh-name">🏫 Intervention en milieu scolaire, groupe-classe et équipes éducatives</div><div class="bh-q">« Faut-il intervenir sur le groupe ? Comment éviter que le groupe se retourne contre l'enfant ? »</div></div>
+    <div class="badges"><span class="badge" style="color:var(--school);border-color:var(--school)">Catheline</span><span class="badge" style="color:var(--school);border-color:var(--school)">Pikas/MPP</span><span class="badge" style="color:var(--school);border-color:var(--school)">Debarbieux</span></div>
+    <div class="chev">▾</div>
+  </div>
+  <div class="body">
+    <div class="tabs">
+      <div class="tab on" onclick="swTab(this,'sind')">🧭 Quand intervenir</div>
+      <div class="tab" onclick="swTab(this,'scath')">🧠 Catheline</div>
+      <div class="tab" onclick="swTab(this,'spikas')">🛠 Méthode Pikas (MPP)</div>
+      <div class="tab" onclick="swTab(this,'sclim')">🌤 Climat scolaire</div>
+      <div class="tab" onclick="swTab(this,'sequipe')">👥 Équipe éducative</div>
+    </div>
+
+    <div class="pane on" id="sind">
+      <div class="slbl">Indicateurs en faveur d'une intervention groupe-classe</div>
+      <div class="g2" style="margin-bottom:12px">
+        <div class="icard"><span class="ico">🌧️</span>Climat de classe pathogène, ambiance tendue, peur diffuse</div>
+        <div class="icard"><span class="ico">🤝</span>Coalitions visibles, sous-groupes hostiles, exclusion organisée</div>
+        <div class="icard"><span class="ico">🎯</span>Provocations actives des autres enfants envers l'enfant agresseur</div>
+        <div class="icard"><span class="ico">⚖️</span>Équipe enseignante divisée sur le profil ou la conduite à tenir</div>
+        <div class="icard"><span class="ico">🔄</span>Profil agresseur-victime (l'enfant alterne les positions), 2, 3 % des élèves</div>
+        <div class="icard"><span class="ico">🌀</span>Bascules cycliques : apaisement transitoire puis nouvelle escalade</div>
+      </div>
+      <div class="slbl" style="margin-top:14px">Contre-indications, à traiter avant toute intervention groupe</div>
+      <div class="g2">
+        <div class="icard"><span class="ico">🛑</span>Pas de travail préalable sur la dyade enfant, adultes</div>
+        <div class="icard"><span class="ico">🛑</span>Pas d'étayage individuel installé pour l'enfant</div>
+        <div class="icard"><span class="ico">🛑</span>Équipe enseignante non formée ou en clivage actif</div>
+        <div class="icard"><span class="ico">🛑</span>Incident frais : discours collectif jamais synchronisé avec un incident</div>
+      </div>
+      <div class="cle">🌿 Clé : un travail groupe-classe mal préparé fédère le groupe <em>contre</em> l'enfant ; un travail bien préparé restaure la fonction protectrice du groupe <em>pour</em> l'enfant.</div>
+    </div>
+
+    <div class="pane" id="scath">
+      <div class="mblock" style="border-color:var(--school)">
+        <div class="mt" style="color:var(--school)">N. Catheline, le harcèlement comme échec de la dynamique de groupe</div>
+        <ul class="ml">
+          <li>Le harcèlement n'est pas d'abord une affaire de « bourreau » et de « victime », mais un <strong>échec de la dynamique de groupe</strong></li>
+          <li>Distinction critique : <strong>souffre-douleur</strong> (Catheline) ≠ <strong>bouc émissaire</strong> (Girard)</li>
+          <li>Risque majeur : que l'enseignant, en désignant publiquement l'agresseur, le constitue en bouc émissaire et fédère le groupe contre lui (effet inverse recherché)</li>
+          <li>Le groupe a une fonction protectrice possible : il faut la restaurer, pas la mobiliser contre un membre</li>
+          <li>Toujours penser conjointement : enfant agresseur, enfant victime, témoins, groupe, équipe d'adultes</li>
+        </ul>
+      </div>
+      <div class="hbox">
+        <h4>Ouvrages-clés</h4>
+        <p style="font-size:13px;color:var(--text);line-height:1.7;margin-top:4px"><em>Le harcèlement scolaire</em> (PUF, Que sais-je ?, 2016), <em>Souffrances à l'école</em> (Albin Michel, 2016), <em>Psychopathologie de la scolarité</em> (Masson).</p>
+      </div>
+    </div>
+
+    <div class="pane" id="spikas">
+      <div class="mblock" style="border-color:var(--school)">
+        <div class="mt" style="color:var(--school)">Méthode de la Préoccupation Partagée (MPP, Anatol Pikas)</div>
+        <ul class="ml">
+          <li><strong>Refus de l'approche disciplinaire frontale</strong> et de la désignation publique</li>
+          <li>Entretiens individuels courts (5, 10 min) avec chaque membre identifié du groupe agresseur</li>
+          <li>Posture non-blâmante : « Je suis préoccupé par X, peux-tu m'aider ? »</li>
+          <li>L'objectif est de <strong>réindividualiser le groupe</strong> en sortant chaque enfant de la dynamique collective</li>
+          <li>Suivi rapproché et entretien de bilan</li>
+          <li>Pas de pression sur la victime, qui est rencontrée séparément avec posture d'écoute</li>
+        </ul>
+      </div>
+      <div class="alert">
+        ⚠️ <strong>Limite importante</strong><br>
+        Pikas considérait sa méthode <em>non adaptée au primaire</em>. Pour les enfants plus jeunes (4, 10 ans), des adaptations existent via le <strong>programme pHARe</strong> (Éducation nationale, France). Références françaises : Bellon, Gardette, Quartier (manuels ESF).
+      </div>
+      <div class="hbox" style="margin-top:8px">
+        <h4>Principes opérationnels MPP</h4>
+        <ul class="cl" style="margin-top:5px">
+          <li>Discours collectif jamais synchronisé avec un incident frais</li>
+          <li>Travailler sur le climat, pas sur l'incident</li>
+          <li>Valoriser des compétences de l'enfant agresseur hors champ scolaire (intégration avec l'approche cognitive/systémique)</li>
+          <li>Ne jamais désigner publiquement, même en pensant protéger</li>
+          <li>Pas de « médiation entre agresseur et victime » au sens classique : posture de préoccupation partagée</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="pane" id="sclim">
+      <div class="mblock" style="border-color:var(--school)">
+        <div class="mt" style="color:var(--school)">É. Debarbieux et C. Blaya, le climat scolaire</div>
+        <ul class="ml">
+          <li>La <strong>qualité de la régulation entre adultes</strong> est le principal facteur protecteur identifié dans les recherches sur le climat scolaire</li>
+          <li>Cohérence de l'équipe pédagogique > intervention ponctuelle sur un enfant</li>
+          <li>Visibilité et prévisibilité des règles, communiquées dans le même langage par tous les adultes</li>
+          <li>Présence adulte dans les espaces non-pédagogiques (cour, couloirs, cantine) : zones de risque accru</li>
+          <li>Reconnaissance et valorisation des micro-comportements adaptés (équivalent collectif du principe Young)</li>
+        </ul>
+      </div>
+      <div class="hbox">
+        <h4>Diagnostic rapide du climat de classe</h4>
+        <ul class="cl" style="margin-top:5px">
+          <li>Les enfants se sentent-ils en sécurité pour parler en classe ?</li>
+          <li>Les règles sont-elles formulées identiquement par tous les adultes ?</li>
+          <li>Existe-t-il des rituels d'entrée/sortie repérables ?</li>
+          <li>Les conflits entre adultes (enseignants, ATSEM, AESH, parents) sont-ils visibles des enfants ?</li>
+          <li>Y a-t-il des espaces et des temps où aucun adulte n'est repérable ?</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="pane" id="sequipe">
+      <div class="two-col">
+        <div>
+          <div class="slbl">Travail avec l'équipe éducative, préalable</div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Décloisonner et coordonner</span></div>
+            <ul class="cl"><li>Réunion d'équipe avant tout discours collectif aux élèves</li><li>Un seul message, plusieurs voix qui le portent</li><li>Repérer le clivage d'équipe (Ciccone) avant de l'attribuer à l'enfant</li><li>Distinguer la souffrance des adultes de celle de l'enfant</li></ul>
+            <div class="ic">🌿 La cohérence des adultes est ce qui apaise le groupe d'enfants.</div>
+          </div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Formulations non-stigmatisantes</span></div>
+            <ul class="cl"><li>« X traverse une période difficile, voici ce qu'on peut faire ensemble »</li><li>Éviter « X est violent / agressif / perturbateur » devant le groupe</li><li>Nommer les conduites, pas l'identité</li><li>Refuser de demander aux pairs de « surveiller » ou « rapporter »</li></ul>
+          </div>
+        </div>
+        <div>
+          <div class="slbl">Travail avec le groupe-classe, quand préparé</div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Restaurer la fonction protectrice du groupe</span></div>
+            <ul class="cl"><li>Valoriser des compétences de l'enfant en difficulté hors champ scolaire</li><li>Créer des occasions de coopération structurée (pas de désignation)</li><li>Intervenir sur le climat (rituels, règles, espaces de parole)</li><li>Réindividualiser : sortir chaque enfant de son rôle dans la dynamique</li></ul>
+            <div class="ic">🌿 Le groupe protège l'enfant agresseur lui-même quand il fonctionne, il faut donc soigner le groupe.</div>
+          </div>
+          <div class="gb">
+            <div class="gh"><span class="gg">🎯</span><span class="gtit">Avec la famille, articulation</span></div>
+            <ul class="cl"><li>Restitution conjointe parents, école quand possible</li><li>Refuser le huis clos famille ou école</li><li>Intégrer un tiers de soin si possible (CMP, libéral)</li><li>Distinguer ce qui se travaille à l'école / en famille / en soin</li></ul>
+          </div>
+        </div>
+      </div>
+      <div class="cle">🎯 Objectif : restaurer une fonction protectrice du groupe et de l'équipe, sans constituer l'enfant en bouc émissaire ni laisser l'incident dicter l'intervention.</div>
+    </div>
+  </div>
+</div>
+
+<!-- AXE TRANSVERSAL -->
+<div class="block" id="tv" style="margin-top:6px">
+  <div class="block-hdr" onclick="tog2('tv-inner')">
+    <div class="bar" style="background:var(--narc)"></div>
+    <div class="bhi"><div class="bh-name">⚖️ Axe transversal d'ajustement</div><div class="bh-q">Questions clés à se poser en consultation</div></div>
+    <div class="chev">▾</div>
+  </div>
+  <div class="body" id="body-tv-inner">
+    <div style="padding:18px">
+      <table class="tv-table">
+        <thead><tr><th>Question clinique</th><th>Si OUI</th><th>Si NON</th></tr></thead>
+        <tbody>
+          <tr><td>L'enfant manque-t-il surtout d'amour visible ?</td><td style="color:var(--depr)">Étayage → Young prioritaire</td><td>Vérifier les limites</td></tr>
+          <tr><td>Les règles sont-elles floues ou inconstantes ?</td><td style="color:var(--limit)">Structurer → Goldman prioritaire</td><td>Explorer carence affective</td></tr>
+          <tr><td>L'enfant agit-il par peur de perdre ?</td><td style="color:var(--depr)">Sécuriser</td><td>Contenir</td></tr>
+          <tr><td>L'enfant agit-il par défi ou toute-puissance ?</td><td style="color:var(--limit)">Cadre ferme</td><td>Explorer vulnérabilité sous-jacente</td></tr>
+          <tr><td>Manque de limite ou manque d'étayage ?</td><td style="color:var(--limit)">🧱 Structurer</td><td style="color:var(--depr)">❤️ Réparer</td></tr>
+          <tr><td>Mode dominant : vulnérable ou impulsif ?</td><td style="color:var(--depr)">Vulnérable → Sécuriser</td><td style="color:var(--limit)">Impulsif → Contenir</td></tr>
+          <tr><td>Confusion générationnelle présente ?</td><td style="color:var(--perv)">🛑 Clarifier les places (Pervers)</td><td>Explorer besoins non comblés</td></tr>
+          <tr><td>Désorganisation identitaire ?</td><td style="color:var(--psych)">🛟 Stabiliser avant tout</td><td>Aller vers autres fiches</td></tr>
+          <tr><td>Les procédés obsessionnels signent-ils une névrose ?</td><td>Non forcément, on les retrouve dans d'autres organisations</td><td>, </td></tr>
+          <tr><td>Violence émerge ou s'intensifie avec la puberté (9, 14 ans) ?</td><td style="color:var(--puber)">⚡ Cadre pubertaire (Marty/Gutton)</td><td>Rester dans cadre organisationnel</td></tr>
+          <tr><td>L'enfant vit sa violence comme réponse à une attaque venant de l'autre ?</td><td style="color:var(--puber)">⚡ Paranoïa ordinaire (Marty), soutien narcissique</td><td>Approche transgressive classique</td></tr>
+          <tr><td>L'enfant impose un lien tyrannique à l'adulte ?</td><td style="color:var(--resist)">⛓️ Penser contre-transfert (Ciccone)</td><td>Cadre habituel</td></tr>
+          <tr><td>Six mois sans amorce de changement malgré bonne alliance ?</td><td style="color:var(--resist)">🛟 Triple croisement (Berger × Ciccone × Tremblay)</td><td>Continuer ajustement</td></tr>
+          <tr><td>Apprentissages d'auto-régulation jamais installés depuis la petite enfance ?</td><td style="color:var(--resist)">📊 Lecture Tremblay, étayage développemental</td><td>Travail symbolique habituel</td></tr>
+          <tr><td>Conduites contrôlantes (coercitives ou parentifiées) envers l'adulte ?</td><td style="color:var(--limit)">N. Guédeney, lire l'attachement désorganisé</td><td>Lecture organisationnelle</td></tr>
+          <tr><td>Climat de classe pathogène, équipe divisée ?</td><td style="color:var(--school)">🏫 Travail équipe avant groupe (Catheline, Pikas)</td><td>Étayage individuel</td></tr>
+          <tr><td>Tenté de désigner publiquement l'enfant agresseur ?</td><td style="color:var(--school)">🛑 Risque bouc émissaire, réindividualiser (Pikas)</td><td>Continuer avec prudence</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- BOUSSOLE -->
+<div class="block" id="syn" style="margin-top:6px">
+  <div class="block-hdr" onclick="tog2('syn-inner')">
+    <div class="bar" style="background:var(--nevr)"></div>
+    <div class="bhi"><div class="bh-name">🧭 Boussole clinique, Résumé stratégique</div><div class="bh-q">Synthèse intégrative Goldman × Young</div></div>
+    <div class="chev">▾</div>
+  </div>
+  <div class="body" id="body-syn-inner">
+    <div style="padding:18px">
+      <div class="syn-grid">
+        <div class="syn-item"><div class="syn-ico">🌪️</div><div><div class="syn-ttl">Si le chaos est pulsionnel</div><div class="syn-sub" style="color:var(--limit)">→ STRUCTURER (Limite)</div></div></div>
+        <div class="syn-item"><div class="syn-ico">💔</div><div><div class="syn-ttl">Si la douleur est affective</div><div class="syn-sub" style="color:var(--depr)">→ RÉPARER (Dépressive)</div></div></div>
+        <div class="syn-item"><div class="syn-ico">🔀</div><div><div class="syn-ttl">Si la confusion est générationnelle</div><div class="syn-sub" style="color:var(--perv)">→ REPLACER (Pervers)</div></div></div>
+        <div class="syn-item"><div class="syn-ico">⚖️</div><div><div class="syn-ttl">Si l'estime vacille</div><div class="syn-sub" style="color:var(--narc)">→ STABILISER (Narcissique)</div></div></div>
+        <div class="syn-item"><div class="syn-ico">🌀</div><div><div class="syn-ttl">Si tout s'effondre</div><div class="syn-sub" style="color:var(--psych)">→ CONTENIR (Psychotique)</div></div></div>
+        <div class="syn-item"><div class="syn-ico">💬</div><div><div class="syn-ttl">Si le conflit est verbalisé</div><div class="syn-sub" style="color:var(--nevr)">→ AJUSTER (Névrotique)</div></div></div>
+        <div class="syn-item"><div class="syn-ico">⚡</div><div><div class="syn-ttl">Si la violence émerge avec la puberté</div><div class="syn-sub" style="color:var(--puber)">→ SOUTENIR NARCISSIQUEMENT (Pubertaire)</div></div></div>
+        <div class="syn-item"><div class="syn-ico">🛟</div><div><div class="syn-ttl">Si rien ne bouge depuis des mois</div><div class="syn-sub" style="color:var(--resist)">→ TRIPLE CROISEMENT (Résistant)</div></div></div>
+        <div class="syn-item"><div class="syn-ico">🏫</div><div><div class="syn-ttl">Si le groupe est en jeu</div><div class="syn-sub" style="color:var(--school)">→ RÉINDIVIDUALISER (École)</div></div></div>
+      </div>
+      <div style="background:rgba(40,85,196,.06);border:1px solid rgba(40,85,196,.18);border-radius:5px;padding:13px;font-size:12px;line-height:1.8;color:var(--text)">
+        <strong style="color:var(--nevr)">Goldman</strong>, décrit la structure et l'économie pulsionnelle : agit sur la <em>place générationnelle et l'interdit</em>.<br>
+        <strong style="color:var(--depr)">Young</strong>, décrit les besoins non satisfaits et les stratégies adaptatives : agit sur la <em>validation émotionnelle et la réparation des besoins fondamentaux</em>.<br>
+        <strong style="color:var(--puber)">Marty / Gutton / Jeanmet</strong>, décrivent le pubertaire et la violence comme <em>réaction à l'effraction et défense narcissique</em>, agissent par le <em>soutien narcissique et la mise en récit</em>.<br>
+        <strong style="color:var(--resist)">Berger / Ciccone / Tremblay</strong>, éclairent les profils résistants : <em>adapter le cadre, penser le contre-transfert, installer les auto-régulations manquantes</em>.<br>
+        <strong style="color:var(--school)">Catheline / Pikas / Debarbieux</strong>, posent les principes de l'intervention scolaire : <em>restaurer la fonction protectrice du groupe sans constituer de bouc émissaire</em>.<br><br>
+        <em>Ensemble : lecture développementale profonde, traduction clinique opérationnelle, guidance parentale et institutionnelle articulée, cohérence entre interprétation et intervention.</em>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<button class="fab" onclick="go('ai-s')">🤖 Question IA</button>
+
+<script>
+// SIDEBAR + CARD TOGGLE
+function tog2(id){
+  const el=document.getElementById('org-'+id)||document.getElementById('org-'+id.replace('-inner',''));
+  if(el){const isOpen=el.classList.contains('open');el.classList.toggle('open',!isOpen);document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('on'));if(!isOpen)document.getElementById('nav-'+id)?.classList.add('on');}
+  // For non-org blocks
+  const body=document.getElementById('body-'+id);
+  if(body){body.style.display=body.style.display==='block'?'none':'block';const btn=body.previousElementSibling;btn.querySelector('.chev').style.transform=body.style.display==='block'?'rotate(180deg)':''}
+}
+function goOrg(id){
+  const el=document.getElementById('org-'+id);
+  if(!el)return;
+  el.scrollIntoView({behavior:'smooth',block:'start'});
+  if(!el.classList.contains('open'))setTimeout(()=>tog2(id),400);
+}
+function go(id){const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'})}
+
+// TABS
+function swTab(tab,paneId){
+  const body=tab.closest('.body');
+  body.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  body.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  tab.classList.add('on');
+  document.getElementById(paneId).classList.add('on');
+}
+
+// MODE
+function setMode(m,btn){
+  document.querySelectorAll('.hbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('intro-panel').style.display=m==='rapide'?'none':'block';
+}
+
+// TRIAGE
+let selOrgs=new Set();
+function tog(chip){chip.classList.toggle('on');updateRes()}
+function updateRes(){
+  const sel=document.querySelectorAll('.chip.on');
+  const counts={};
+  sel.forEach(c=>c.dataset.o.split(',').forEach(o=>counts[o]=(counts[o]||0)+1));
+  selOrgs=new Set(Object.keys(counts));
+  const banner=document.getElementById('res-banner');
+  if(!selOrgs.size){banner.classList.remove('show');return}
+  banner.classList.add('show');
+  const colors={nevr:'var(--nevr)',depr:'var(--depr)',limit:'var(--limit)',narc:'var(--narc)',perv:'var(--perv)',psych:'var(--psych)',puber:'var(--puber)',resist:'var(--resist)',school:'var(--school)'};
+  const names={nevr:'Névrotique',depr:'Dépressive',limit:'Limite',narc:'Narcissique',perv:'Pervers',psych:'Psychotique',puber:'Pubertaire',resist:'Profils résistants',school:'Milieu scolaire'};
+  const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('res-tags').innerHTML=sorted.map(([o,n])=>`<span class="res-tag" style="background:${colors[o]}22;color:${colors[o]};border-color:${colors[o]}44">${names[o]} (${n})</span>`).join('');
+}
+function openSelected(){
+  if(!selOrgs.size)return;
+  const first=[...selOrgs][0];
+  goOrg(first);
+}
+
+// AI
+const SYS=`Tu es un assistant clinique expert en psychopathologie de l'enfant et du jeune adolescent, maîtrisant parfaitement :
+1. La psychanalyse développementale de Caroline Goldman (organisations névrotique, dépressive, limite, narcissique, perverse, psychotique/identitaire ; étiologies ; vignettes cliniques ; principe de fixation aux stades ; indices symptomatologiques)
+2. La thérapie des schémas de Jeffrey Young (schémas précoces inadaptés, modes, besoins fondamentaux non satisfaits, styles d'adaptation)
+3. Le cadre psychodynamique du pubertaire (Ph. Gutton, F. Marty, Ph. Jeanmet, A. Malchair) : effraction pubertaire, soutien narcissique parental, clivage, traumatisme cumulatif (par séduction + par carence), violence comme réaction à la menace narcissique
+4. L'attachement (N. Guédeney) : attachement désorganisé, conduites contrôlantes envers l'adulte
+5. Le développement précoce de l'agressivité (R. Tremblay) : pic 2-4 ans normal, question du non-désapprentissage
+6. Les profils résistants (M. Berger, A. Ciccone) : lien tyrannique, paralysie de la pensée, contre-transfert institutionnel
+7. L'intervention en milieu scolaire (N. Catheline, méthode Pikas/MPP, E. Debarbieux, C. Blaya) : dynamique de groupe, climat scolaire, intervention non-stigmatisante
+8. Les correspondances structurelles entre ces approches
+
+Le praticien consulte en cabinet ou exerce comme psychologue scolaire. Ses besoins :
+- Diagnostic différentiel rapide basé sur les observations cliniques
+- Formulations de guidance parentale et d'équipe éducative directement utilisables
+- Rappels théoriques ciblés des différentes approches
+- Aide à la restitution aux parents et aux enseignants (langage accessible)
+- Différentiels fins (hyperactivité dépressive vs limite, passages à l'acte, violence pubertaire vs limite, etc.)
+- Réflexion sur l'opportunité et la modalité d'une intervention groupe-classe
+
+Règles :
+- Concis et structuré (sous-titres courts ou puces)
+- Cite Goldman, Young, et les auteurs du pubertaire/attachement quand pertinent, avec les termes exacts
+- Donne des formulations concrètes et des images cliniques directement utilisables
+- Si plusieurs organisations possibles, liste les indices différentiels clés
+- Pour la guidance parentale, donne des phrases directement utilisables par les parents
+- Pour la guidance équipe éducative, propose des formulations non-stigmatisantes (principe Pikas)
+- Réfère-toi aux vignettes cliniques et exemples de Goldman quand pertinent
+- Réponds en français, style clinique accessible
+- N'utilise pas le tiret cadratin (—), remplace par une virgule
+- Max 400 mots sauf si explicitement demandé plus long`;
+
+function setQ(q){document.getElementById('ai-inp').value=q;document.getElementById('ai-inp').focus()}
+async function aiSend(){
+  const inp=document.getElementById('ai-inp');
+  const q=inp.value.trim();if(!q)return;
+  const btn=document.getElementById('ai-btn');
+  const load=document.getElementById('ai-load');
+  const resp=document.getElementById('ai-resp');
+  const txt=document.getElementById('ai-resp-txt');
+  btn.disabled=true;load.classList.add('show');resp.classList.remove('show');
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:SYS,messages:[{role:'user',content:q}]})
+    });
+    const d=await r.json();
+    txt.textContent=d.content?.map(b=>b.text||'').join('')||'Erreur de réponse.';
+    resp.classList.add('show');inp.value='';
+  }catch(e){txt.textContent='Erreur de connexion.';resp.classList.add('show');}
+  finally{btn.disabled=false;load.classList.remove('show')}
+}
+
+// Auto-open transversal/synthese
+document.getElementById('body-tv-inner').style.display='none';
+document.getElementById('body-syn-inner').style.display='none';
+</script>
+</body>
+</html>
